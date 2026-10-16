@@ -41,6 +41,7 @@ function run(cmd, extraEnv = {}) {
 }
 
 run("prisma generate");
+run("node scripts/copy-zxing-wasm.mjs");
 run("prisma migrate deploy", { DATABASE_URL: directUrl });
 run("tsx prisma/seed.ts --if-empty", { DATABASE_URL: directUrl });
 run("next build");

@@ -127,3 +127,7 @@
 #barcode-reader {
   border: 0 !important;
 }
+/* We draw our own guide frame; hide the library's shaded box. */
+#barcode-reader #qr-shaded-region {
+  display: none !important;
+}

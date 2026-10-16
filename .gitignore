@@ -16,6 +16,9 @@ certificates/
 prisma/*.db
 prisma/*.db-journal
 
+# generated at install time (scripts/copy-zxing-wasm.mjs)
+public/zxing/
+
 # misc
 .DS_Store
 npm-debug.log*

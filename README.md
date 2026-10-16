@@ -32,7 +32,7 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 
 **Lookup (no login needed)**
 - **Home screen:** three giant buttons (Scan / Speak / Type) plus *Recent searches*, so the last products can be reopened with one tap.
-- **Barcode scan:** EAN-13, EAN-8, UPC-A/E, Code 128, Code 39, ITF and QR, using the phone's native `BarcodeDetector` when available. Beeps and vibrates on success. You can also type the number, or use a **USB/Bluetooth barcode gun**: it types the digits and presses Enter, and the product opens.
+- **Barcode scan:** EAN-13, EAN-8, UPC-A/E, Code 128, Code 39, ITF and QR. Beeps and vibrates on success. Frames are decoded at camera resolution (not the on-screen size) by the phone's native `BarcodeDetector` (Android) or by **ZXing-C++ in WebAssembly** everywhere else (iPhone, Windows, Firefox), which tolerates the blur of real camera frames far better than html5-qrcode's built-in zxing-js. If the live camera struggles, **Take a photo of the barcode** reads it from a sharp photo instead, and a tip appears after 10 s. You can also type the number, or use a **USB/Bluetooth barcode gun**: it types the digits and presses Enter, and the product opens.
 - **Voice search:** Web Speech API in Vietnamese (`vi-VN`) or English. It tries every alternative the recogniser heard and ignores filler words like *"giá … bao nhiêu"*. When the match is clear, the product opens; when several products tie (e.g. two brands of phi 27 pipe), only the close candidates are shown.
 - **Fuzzy search:** accent-insensitive (`ong nuoc` = `Ống nước`), prefix-aware (`pan` → Panasonic…), typo-tolerant (`panasonik`), with exact number matching (`27` never returns `21`) and barcode search. A search takes about 10 ms.
 - **Product card:** large price, cost price and profit (can be hidden), stock with a colour + icon + word status, shelf location, category, barcode and last-updated time. A fixed bottom bar makes checking the *next* product one tap.
@@ -50,7 +50,7 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 
 ## Tech stack
 
-Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix) · Prisma 6 + PostgreSQL (Neon) · Zustand · html5-qrcode · Web Speech API · Lucide icons · Zod · Vitest
+Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix) · Prisma 6 + PostgreSQL (Neon) · Zustand · html5-qrcode + ZXing-C++ (zxing-wasm) · Web Speech API · Lucide icons · Zod · Vitest
 
 ---
 
@@ -343,6 +343,7 @@ npm start                # port 3000; set PORT=… to change
 | `npm install` / `prisma generate` fails with **"self-signed certificate in certificate chain"** (corporate network/antivirus) | Trust the Windows/macOS certificate store: PowerShell `$env:NODE_OPTIONS="--use-system-ca"`, bash `export NODE_OPTIONS=--use-system-ca`, then rerun. |
 | Camera or mic says "blocked" | Tap the 🔒 icon in the address bar → allow Camera/Microphone. Use `https://` or `localhost`. |
 | Voice says "No internet connection" | Chrome and Edge send speech to an online service, so the shop device needs internet for voice. Scan and search work on the local network only. |
+| Barcode won't scan | Hold the phone 15–25 cm away in good light, barcode level inside the frame. Curved cans: turn the can so the barcode faces the camera squarely. Still nothing? Tap **Take a photo of the barcode**, or type the number. Laptop webcams usually can't focus close enough for barcodes, so use a phone. |
 | Voice search not available | Use Google Chrome (Android/desktop) or Safari (iOS 14.5+). Firefox has no Web Speech recognition. |
 | Every page shows "Có lỗi xảy ra" / "Something went wrong" after deploying | The app can't reach the database. Check that `DATABASE_URL` is set in Vercel → Settings → Environment Variables, then redeploy. The function logs (Vercel → Logs) show the exact error. |
 | `prepared statement "s0" already exists` | Your connection goes through a pooler that doesn't support prepared statements (or it's `npm run db:local`). Add `&pgbouncer=true` to `DATABASE_URL` (not to the unpooled one). |

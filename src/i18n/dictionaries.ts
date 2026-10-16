@@ -66,6 +66,10 @@ const en = {
   "scan.typeBarcode": "Or type the barcode number",
   "scan.find": "Find",
   "scan.addThis": "Add this product",
+  "scan.photo": "Take a photo of the barcode",
+  "scan.photoReading": "Reading the photo…",
+  "scan.photoFailed": "Could not read a barcode in that photo. Take it closer, sharp, with the barcode straight across.",
+  "scan.tip": "Not reading yet? Hold the phone 15–25 cm away in good light, with the barcode straight inside the frame. Or tap “Take a photo of the barcode”.",
 
   "product.title": "Product details",
   "product.price": "Selling price",
@@ -228,6 +232,10 @@ const vi: Dictionary = {
   "scan.typeBarcode": "Hoặc gõ số mã vạch",
   "scan.find": "Tìm",
   "scan.addThis": "Thêm sản phẩm này",
+  "scan.photo": "Chụp ảnh mã vạch",
+  "scan.photoReading": "Đang đọc ảnh…",
+  "scan.photoFailed": "Không đọc được mã vạch trong ảnh. Chụp gần hơn, rõ nét, mã vạch nằm ngang.",
+  "scan.tip": "Chưa quét được? Giữ máy cách 15–25 cm, đủ sáng, để mã vạch nằm ngang trong khung. Hoặc bấm “Chụp ảnh mã vạch”.",
 
   "product.title": "Thông tin sản phẩm",
   "product.price": "Giá bán",
