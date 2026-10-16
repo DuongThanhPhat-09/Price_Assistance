@@ -10,22 +10,23 @@ function requestSignal(timeoutMs: number, signal?: AbortSignal): AbortSignal {
 }
 
 /**
- * POSTs JSON to a provider and returns the parsed body. Network failures
- * and non-2xx responses become VisionProviderError; `classify` maps a
- * provider's own error format to our codes.
+ * Calls a provider (POST with a JSON body, or GET without one) and returns
+ * the parsed body. Network failures and non-2xx responses become
+ * VisionProviderError; `classify` maps a provider's own error format to our codes.
  */
-export async function postJson(
+export async function requestJson(
   provider: VisionProviderId,
   url: string,
-  init: { headers: Record<string, string>; body: unknown; timeoutMs?: number; signal?: AbortSignal },
+  init: { headers: Record<string, string>; body?: unknown; timeoutMs?: number; signal?: AbortSignal },
   classify: (status: number, body: unknown) => { code: VisionErrorCode; message: string },
 ): Promise<unknown> {
   let res: Response;
+  const hasBody = init.body !== undefined;
   try {
     res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...init.headers },
-      body: JSON.stringify(init.body),
+      method: hasBody ? "POST" : "GET",
+      headers: { ...(hasBody ? { "Content-Type": "application/json" } : {}), ...init.headers },
+      body: hasBody ? JSON.stringify(init.body) : undefined,
       signal: requestSignal(init.timeoutMs ?? DEFAULT_TIMEOUT_MS, init.signal),
       cache: "no-store",
     });

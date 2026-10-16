@@ -1,5 +1,5 @@
 import "server-only";
-import { codeForStatus, parseModelJson, postJson, toBase64 } from "../http";
+import { codeForStatus, parseModelJson, requestJson, toBase64 } from "../http";
 import {
   VisionProviderError,
   type StructuredVisionRequest,
@@ -54,7 +54,7 @@ export class OpenAIVisionProvider implements VisionProvider {
       },
     };
 
-    const data = (await postJson(
+    const data = (await requestJson(
       this.id,
       `${this.baseUrl.replace(/\/+$/, "")}/chat/completions`,
       { headers: { Authorization: `Bearer ${this.apiKey}` }, body, timeoutMs: req.timeoutMs, signal: req.signal },
@@ -74,10 +74,32 @@ export class OpenAIVisionProvider implements VisionProvider {
 
     return {
       output: parseModelJson(this.id, content),
+      provider: this.id,
       model: data.model ?? this.model,
       usage: { inputTokens: data.usage?.prompt_tokens, outputTokens: data.usage?.completion_tokens },
     };
   }
+
+  async listModels(signal?: AbortSignal): Promise<string[]> {
+    const data = (await requestJson(
+      this.id,
+      `${this.baseUrl.replace(/\/+$/, "")}/models`,
+      { headers: { Authorization: `Bearer ${this.apiKey}` }, timeoutMs: 15_000, signal },
+      classifyOpenAIError,
+    )) as { data?: { id?: string }[] };
+    return pickOpenAIVisionModels((data.data ?? []).map((m) => m.id ?? ""));
+  }
+}
+
+// Chat models only; audio, realtime, image generation, embeddings etc. can't
+// answer "read this photo" with JSON.
+const NON_VISION_OPENAI = /audio|realtime|transcribe|tts|search|image|instruct|codex|embedding|moderation|dall-e|whisper|davinci|babbage|3\.5/i;
+
+/** GPT / o-series chat models, newest first. */
+export function pickOpenAIVisionModels(ids: string[]): string[] {
+  return [...new Set(ids)]
+    .filter((id) => /^(gpt-|o\d|chatgpt-)/.test(id) && !NON_VISION_OPENAI.test(id))
+    .sort((a, b) => b.localeCompare(a, "en", { numeric: true }));
 }
 
 export function classifyOpenAIError(status: number, body: unknown) {

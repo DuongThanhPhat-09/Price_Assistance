@@ -64,6 +64,9 @@ model ProductRecognitionHistory {
   status         String
   // Normalised AI output exactly as first returned, for auditing.
   result         Json?
+  // Every model tried, in order: [{ provider, model, ok, code?, ms }].
+  // More than one entry means a fallback model answered.
+  attempts       Json?
   error          String?
   durationMs     Int?     @map("duration_ms")
   createdAt      DateTime @default(now()) @map("created_at")

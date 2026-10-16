@@ -18,6 +18,7 @@ import type {
   RecognitionResponse,
   RecognitionStatus,
   RecognizedProductDTO,
+  VisionAttemptDTO,
   VisionProviderId,
 } from "@/lib/types";
 import type { ProductInput } from "@/lib/validation";
@@ -80,14 +81,16 @@ export async function recognizeProductPhoto(input: {
     recognized = await recognizeProduct(provider, input.image, { locale: input.locale, categories }, input.signal);
   } catch (e) {
     if (e instanceof VisionProviderError) {
+      const last = e.attempts?.at(-1);
       await prisma.productRecognitionHistory
         .create({
           data: {
             imageUrl,
-            provider: provider.id,
-            aiModel: provider.model,
+            provider: last?.provider ?? provider.id,
+            aiModel: last?.model ?? provider.model,
             status: "failed",
             error: `${e.code}: ${e.message}`.slice(0, 500),
+            attempts: (e.attempts ?? []) as unknown as Prisma.InputJsonArray,
             durationMs: Date.now() - started,
           },
         })
@@ -107,10 +110,11 @@ export async function recognizeProductPhoto(input: {
       imageUrl,
       recognizedName: result.name || null,
       confidence: result.confidence,
-      provider: provider.id,
+      provider: recognized.provider,
       aiModel: recognized.model,
       status: "recognized",
       result: result as unknown as Prisma.InputJsonObject,
+      attempts: recognized.attempts as unknown as Prisma.InputJsonArray,
       durationMs,
     },
     select: { id: true },
@@ -119,7 +123,7 @@ export async function recognizeProductPhoto(input: {
   return {
     recognitionId: row.id,
     imageUrl,
-    provider: provider.id,
+    provider: recognized.provider,
     model: recognized.model,
     result,
     matches,
@@ -214,6 +218,7 @@ export async function listRecognitions(opts: { limit?: number; before?: number }
     status: r.status as RecognitionStatus,
     error: r.error,
     durationMs: r.durationMs,
+    attempts: Array.isArray(r.attempts) ? (r.attempts as unknown as VisionAttemptDTO[]) : null,
     createdAt: r.createdAt.toISOString(),
     product: r.product,
   }));

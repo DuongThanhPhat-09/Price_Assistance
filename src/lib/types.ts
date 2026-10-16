@@ -129,11 +129,23 @@ export interface RecognitionLogDTO {
   status: RecognitionStatus;
   error: string | null;
   durationMs: number | null;
+  /** Every model tried, in order; more than one means a fallback answered. */
+  attempts: VisionAttemptDTO[] | null;
   createdAt: string;
   product: Pick<ProductDTO, "id" | "name"> | null;
 }
 
-export type ApiKeySource = "env" | "settings" | null;
+export interface VisionAttemptDTO {
+  provider: VisionProviderId;
+  model: string;
+  ok: boolean;
+  /** Why it failed, e.g. "unavailable" (overloaded), "model", "auth". */
+  code?: string;
+  ms: number;
+}
+
+/** "own" = a fallback's own key; otherwise where its provider's key comes from. */
+export type ApiKeySource = "env" | "settings" | "own" | null;
 
 export interface VisionProviderSettingsDTO {
   model: string;
@@ -144,15 +156,30 @@ export interface VisionProviderSettingsDTO {
   keyHint: string | null;
 }
 
+export interface FallbackModelDTO {
+  id: string;
+  provider: VisionProviderId;
+  model: string;
+  keySource: ApiKeySource;
+  keyHint: string | null;
+}
+
 export interface AISettingsDTO {
   provider: VisionProviderId;
   /** The selected provider has an API key. */
   ready: boolean;
   providers: Record<VisionProviderId, VisionProviderSettingsDTO>;
+  /** Tried in this order when the main model fails. */
+  fallbacks: FallbackModelDTO[];
   /** False when SETTINGS_SECRET is unset and saved keys use the fallback key. */
   hasSettingsSecret: boolean;
 }
 
+/** Result of testing one model of the chain (main model first). */
 export type AITestResult =
   | { ok: true; provider: VisionProviderId; model: string; durationMs: number }
-  | { ok: false; provider: VisionProviderId; code: string; message: string };
+  | { ok: false; provider: VisionProviderId; model: string; code: string; message: string };
+
+export interface AITestResponse {
+  results: AITestResult[];
+}

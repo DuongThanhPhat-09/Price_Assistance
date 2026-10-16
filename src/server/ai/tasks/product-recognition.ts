@@ -5,7 +5,13 @@ import { appConfig, type Locale } from "@/lib/config";
 import { FRACTION_DIGITS, parseAmount, toMinor } from "@/lib/money";
 import type { RecognizedProductDTO } from "@/lib/types";
 import type { JsonSchema } from "../vision/json-schema";
-import { VisionProviderError, type VisionImage, type VisionProvider } from "../vision/types";
+import {
+  VisionProviderError,
+  type VisionAttempt,
+  type VisionImage,
+  type VisionProvider,
+  type VisionProviderId,
+} from "../vision/types";
 
 /**
  * Task: one product photo → catalogue-ready product data.
@@ -212,7 +218,7 @@ export async function recognizeProduct(
   image: VisionImage,
   ctx: ProductRecognitionContext,
   signal?: AbortSignal,
-): Promise<{ result: RecognizedProductDTO; model: string }> {
+): Promise<{ result: RecognizedProductDTO; provider: VisionProviderId; model: string; attempts: VisionAttempt[] }> {
   const { instructions, prompt } = buildProductRecognitionPrompt(ctx);
   const res = await provider.generateStructured({
     task: "product_recognition",
@@ -223,9 +229,18 @@ export async function recognizeProduct(
     signal,
   });
   try {
-    return { result: parseProductRecognition(res.output), model: res.model };
+    return {
+      result: parseProductRecognition(res.output),
+      provider: res.provider,
+      model: res.model,
+      attempts: res.attempts ?? [],
+    };
   } catch (e) {
-    if (e instanceof VisionProviderError) throw new VisionProviderError(e.code, e.message, provider.id);
+    if (e instanceof VisionProviderError && !e.provider) {
+      const err = new VisionProviderError(e.code, e.message, res.provider);
+      err.attempts = res.attempts;
+      throw err;
+    }
     throw e;
   }
 }

@@ -1,6 +1,6 @@
 import type {
   AISettingsDTO,
-  AITestResult,
+  AITestResponse,
   ImportResult,
   ProductDTO,
   ProductListResponse,
@@ -118,8 +118,10 @@ export const api = {
     request<RecognitionLogDTO[]>(`/api/ai/recognitions?limit=${opts.limit ?? 20}${opts.before ? `&before=${opts.before}` : ""}`),
   aiSettings: () => request<AISettingsDTO>("/api/ai/settings"),
   saveAiSettings: (input: AISettingsPayload) => request<AISettingsDTO>("/api/ai/settings", { method: "PUT", ...json(input) }),
-  testAi: (provider: VisionProviderId) =>
-    request<AITestResult>("/api/ai/settings/test", { method: "POST", ...json({ provider }) }),
+  /** Tests every model of the chain (main + fallbacks) at once. */
+  testAi: () => request<AITestResponse>("/api/ai/settings/test", { method: "POST" }),
+  aiModels: (provider: VisionProviderId) =>
+    request<{ models: string[] }>(`/api/ai/settings/models?provider=${provider}`),
 
   login: (pin: string) => request<{ ok: boolean }>("/api/admin/login", { method: "POST", ...json({ pin }) }),
   logout: () => request<void>("/api/admin/login", { method: "DELETE" }),

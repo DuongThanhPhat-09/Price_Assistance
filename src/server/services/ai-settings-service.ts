@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { prisma } from "../db";
 import { decryptSecret, encryptSecret, hasSettingsSecret, maskSecret } from "../secret-box";
 import { GEMINI_DEFAULT_MODEL } from "../ai/vision/providers/gemini";
@@ -7,7 +8,8 @@ import type { AISettingsDTO, ApiKeySource, VisionProviderId } from "@/lib/types"
 import type { AISettingsInput } from "@/lib/validation";
 
 /**
- * Smart Recognition settings: which AI provider to use, its model, its key.
+ * Smart Recognition settings: which AI provider to use, its model, its key,
+ * and the fallback models tried when the main one fails.
  *
  * Precedence (highest first):
  *   API key   OPENAI_API_KEY / GEMINI_API_KEY env  →  key saved in Settings
@@ -15,16 +17,28 @@ import type { AISettingsInput } from "@/lib/validation";
  *   provider  provider saved in Settings  →  AI_VISION_PROVIDER env  →  first provider with a key
  *
  * Env keys win so a host-managed secret can't be overridden from the UI.
+ * A fallback can carry its own key (e.g. another Google project); without
+ * one it uses its provider's key.
  */
 
 const SETTING_KEY = "ai.vision";
 export const PROVIDERS: VisionProviderId[] = ["openai", "gemini"];
+export const MAX_FALLBACKS = 3;
+
+interface StoredFallback {
+  id: string;
+  provider: VisionProviderId;
+  model: string;
+  /** Encrypted with secret-box. */
+  key?: string;
+}
 
 interface StoredSettings {
   provider?: VisionProviderId;
   models?: Partial<Record<VisionProviderId, string>>;
   /** Encrypted with secret-box. */
   keys?: Partial<Record<VisionProviderId, string>>;
+  fallbacks?: StoredFallback[];
 }
 
 const DEFAULT_MODELS: Record<VisionProviderId, string> = {
@@ -74,6 +88,15 @@ function pickProvider(stored: StoredSettings): VisionProviderId {
   );
 }
 
+function modelFor(stored: StoredSettings, provider: VisionProviderId): string {
+  return stored.models?.[provider] || envModel(provider) || DEFAULT_MODELS[provider];
+}
+
+function fallbackKey(stored: StoredSettings, f: StoredFallback) {
+  const own = f.key ? decryptSecret(f.key) : null;
+  return own ? { key: own, source: "own" as const } : keyFor(stored, f.provider);
+}
+
 export interface VisionConfig {
   provider: VisionProviderId;
   apiKey: string;
@@ -85,8 +108,34 @@ export async function resolveVisionConfig(provider?: VisionProviderId): Promise<
   const stored = await readStored();
   const id = provider ?? pickProvider(stored);
   const { key } = keyFor(stored, id);
-  if (!key) return null;
-  return { provider: id, apiKey: key, model: stored.models?.[id] || envModel(id) || DEFAULT_MODELS[id] };
+  return key ? { provider: id, apiKey: key, model: modelFor(stored, id) } : null;
+}
+
+/**
+ * Main model first, then the fallbacks, in the order they are tried.
+ * Entries without a usable key are skipped; duplicates are dropped.
+ */
+export async function resolveVisionChain(): Promise<VisionConfig[]> {
+  const stored = await readStored();
+  const main = pickProvider(stored);
+  const candidates: (VisionConfig | null)[] = [
+    (() => {
+      const { key } = keyFor(stored, main);
+      return key ? { provider: main, apiKey: key, model: modelFor(stored, main) } : null;
+    })(),
+    ...(stored.fallbacks ?? []).map((f) => {
+      const { key } = fallbackKey(stored, f);
+      return key && f.model ? { provider: f.provider, apiKey: key, model: f.model } : null;
+    }),
+  ];
+  const seen = new Set<string>();
+  return candidates.filter((c): c is VisionConfig => {
+    if (!c) return false;
+    const id = `${c.provider}|${c.model}|${c.apiKey}`;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }
 
 export async function getAISettings(): Promise<AISettingsDTO> {
@@ -103,7 +152,18 @@ export async function getAISettings(): Promise<AISettingsDTO> {
     }),
   ) as AISettingsDTO["providers"];
 
-  return { provider, ready: !!providers[provider].keySource, providers, hasSettingsSecret: hasSettingsSecret() };
+  const fallbacks = (stored.fallbacks ?? []).map((f) => {
+    const { key, source } = fallbackKey(stored, f);
+    return { id: f.id, provider: f.provider, model: f.model, keySource: source, keyHint: key ? maskSecret(key) : null };
+  });
+
+  return {
+    provider,
+    ready: !!providers[provider].keySource,
+    providers,
+    fallbacks,
+    hasSettingsSecret: hasSettingsSecret(),
+  };
 }
 
 export async function updateAISettings(input: AISettingsInput): Promise<AISettingsDTO> {
@@ -125,6 +185,14 @@ export async function updateAISettings(input: AISettingsInput): Promise<AISettin
     if (key) next.keys![id] = encryptSecret(key);
     else delete next.keys![id];
   }
+
+  // Fallbacks are matched by id so a row keeps its own key when others are
+  // added, removed or reordered.
+  next.fallbacks = (input.fallbacks ?? []).slice(0, MAX_FALLBACKS).map((f) => {
+    const existing = f.id ? stored.fallbacks?.find((x) => x.id === f.id) : undefined;
+    const key = f.apiKey === undefined ? existing?.key : f.apiKey ? encryptSecret(f.apiKey) : undefined;
+    return { id: existing?.id ?? randomUUID(), provider: f.provider, model: f.model, ...(key ? { key } : {}) };
+  });
 
   const value = JSON.stringify(next);
   await prisma.appSetting.upsert({

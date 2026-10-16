@@ -190,6 +190,7 @@ export function RecognitionReview({
         confidence={r.confidence}
         footer={t("review.byProvider", {
           provider: PROVIDER_LABEL[data.provider],
+          model: data.model,
           seconds: (data.durationMs / 1000).toFixed(1),
         })}
       />

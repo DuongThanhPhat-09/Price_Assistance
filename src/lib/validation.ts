@@ -165,6 +165,21 @@ export const aiSettingsInputSchema = z.object({
   geminiModel: modelName,
   openaiApiKey: apiKeyChange,
   geminiApiKey: apiKeyChange,
+  /** Tried in order when the main model fails. Omitted = none. */
+  fallbacks: z
+    .array(
+      z.object({
+        /** Existing row id, so the row keeps its saved key. */
+        id: z.string().max(64).optional(),
+        provider: z.enum(["openai", "gemini"]),
+        model: modelName.pipe(z.string({ invalid_type_error: "Enter a model name" }).min(1, "Enter a model name")),
+        /** Own key for this row: omitted = keep, "" = remove (use the provider's key). */
+        apiKey: apiKeyChange,
+      }),
+    )
+    .max(3, "At most 3 fallback models")
+    .optional()
+    .default([]),
 });
 
 export type AISettingsInput = z.infer<typeof aiSettingsInputSchema>;

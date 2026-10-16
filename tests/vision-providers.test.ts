@@ -63,14 +63,14 @@ describe("OpenAI adapter", () => {
 describe("Gemini adapter", () => {
   it("sends inline image data and a Gemini response schema", async () => {
     const fetch = mockFetch(200, {
-      modelVersion: "gemini-2.5-flash",
+      modelVersion: "gemini-3.8-flash",
       candidates: [{ finishReason: "STOP", content: { parts: [{ text: '```json\n{"ok":true}\n```' }] } }],
     });
     const res = await new GeminiVisionProvider("g-key").generateStructured(request);
 
     expect(res.output).toEqual({ ok: true }); // tolerates ```json fences
     const [url, init] = fetch.mock.calls[0];
-    expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+    expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent");
     expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe("g-key");
     const body = JSON.parse(init.body as string);
     expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: "image/jpeg", data: "AQID" } });

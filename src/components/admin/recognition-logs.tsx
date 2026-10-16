@@ -11,6 +11,19 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/i18n-provider";
 
 const PAGE = 20;
+const ATTEMPT_CODES = [
+  "unavailable",
+  "rate_limit",
+  "timeout",
+  "model",
+  "auth",
+  "quota",
+  "invalid_response",
+  "refused",
+  "bad_request",
+  "not_configured",
+] as const;
+const isAttemptCode = (c: string): c is (typeof ATTEMPT_CODES)[number] => (ATTEMPT_CODES as readonly string[]).includes(c);
 const PROVIDER_LABEL = { openai: "OpenAI", gemini: "Gemini" } as const;
 
 const STATUS_STYLE: Record<RecognitionStatus, string> = {
@@ -83,6 +96,24 @@ export function RecognitionLogs() {
                 {log.durationMs !== null && <span>{(log.durationMs / 1000).toFixed(1)} s</span>}
                 <span suppressHydrationWarning>{formatRelative(log.createdAt)}</span>
               </p>
+              {log.attempts && (log.attempts.length > 1 || log.attempts.some((x) => !x.ok)) && (
+                <p className="break-words text-sm text-muted-foreground">
+                  {t("aiSettings.tried")}{" "}
+                  {log.attempts.map((x, i) => (
+                    <span key={i}>
+                      {i > 0 && " → "}
+                      <span className="font-mono">{x.model}</span>{" "}
+                      {x.ok ? (
+                        <span className="font-bold text-success">✓</span>
+                      ) : (
+                        <span className="text-destructive">
+                          ✗ {x.code && isAttemptCode(x.code) ? t(`aiCode.${x.code}`) : x.code}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </p>
+              )}
               {log.error && <p className="line-clamp-2 break-all text-sm text-destructive">{log.error}</p>}
             </div>
           </li>

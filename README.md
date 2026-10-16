@@ -44,7 +44,7 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 - **Scan to add products** (*Manage products → Scan to add products*): scan an item. An unknown barcode opens the *Add* form with the barcode filled in; a known one opens *Edit* so you can update the price or stock. After *Save* the camera comes back for the next item, so stocking a shelf is scan → type name & price → save → scan…
 - Add / edit / delete products (delete always asks for confirmation). The barcode field has its own **Scan** button and warns immediately if the code already belongs to another product.
 - **CSV bulk import** (upsert by barcode, per-row error report with spreadsheet row numbers) and **CSV export** (Excel-friendly UTF-8).
-- **Smart Recognition settings** (shop-wide): choose OpenAI or Gemini, store the API key (encrypted), pick the model, test the connection, and see the recognition logs.
+- **Smart Recognition settings** (shop-wide): choose OpenAI or Gemini, store the API key (encrypted), pick the model from the list your key can use, add up to 3 **fallback models** tried automatically when the main one is overloaded or retired, test every model at once, and see the recognition logs.
 - Per-device settings: store name, show/hide cost price (for screens customers can see), language, clear history.
 - Optional **admin PIN** (`ADMIN_PIN`). Price lookup always stays open.
 
@@ -141,7 +141,7 @@ All settings live in `.env` (see `.env.example`).
 | `OPENAI_API_KEY` | – | Optional. Enables Smart Product Recognition with OpenAI. Overrides a key saved in Settings. |
 | `GEMINI_API_KEY` | – | Optional. Same for Google Gemini (`GOOGLE_API_KEY` also accepted). |
 | `AI_VISION_PROVIDER` | first with a key | `openai` or `gemini`, used until a provider is chosen in Settings. |
-| `OPENAI_VISION_MODEL` / `GEMINI_VISION_MODEL` | `gpt-4o` / `gemini-2.5-flash` | Default model. A model chosen in Settings wins. |
+| `OPENAI_VISION_MODEL` / `GEMINI_VISION_MODEL` | `gpt-4o` / `gemini-3.8-flash` | Default model. A model chosen in Settings wins. |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Optional OpenAI-compatible gateway. |
 | `SETTINGS_SECRET` | – | Recommended when keys are saved from the Settings page: encrypts them (AES-256-GCM). See [API keys](#api-keys-and-security). |
 
@@ -285,7 +285,8 @@ Smart Product Recognition adds three tables:
 | POST | `/api/ai/recognitions/:id/link` 🔒 | `{ productId }`: "it's this existing product" |
 | GET | `/api/ai/recognitions?limit=20&before=<id>` 🔒 | Recognition logs |
 | GET / PUT | `/api/ai/settings` 🔒 | Provider, models, keys (keys are write-only; responses only show a masked hint) |
-| POST | `/api/ai/settings/test` 🔒 | `{ provider }` → `{ ok, model, durationMs }` or `{ ok: false, code, message }` |
+| POST | `/api/ai/settings/test` 🔒 | Tests every model of the chain (main + fallbacks) → `{ results: [{ ok, provider, model, durationMs } \| { ok: false, …, code, message }] }` |
+| GET | `/api/ai/settings/models?provider=gemini` 🔒 | Models the key can use for photos → `{ models: string[] }` |
 | GET | `/api/images/:id` | Stored product photo (immutable, cached) |
 | POST / DELETE | `/api/admin/login` | Unlock / lock admin |
 
@@ -320,10 +321,11 @@ The owner takes a photo; the AI identifies the product; the owner checks and sav
    - **OpenAI** (GPT-4o): <https://platform.openai.com/api-keys>. Needs a paid account with credit.
    - **Google Gemini**: <https://aistudio.google.com/apikey>. Has a free tier with per-minute limits.
 2. Either put it in the server environment (`OPENAI_API_KEY` or `GEMINI_API_KEY`, then redeploy), **or** open **Manage products → Smart Recognition settings**, pick the provider, paste the key and tap **Save**.
-3. Tap **Test** there. "OpenAI works (gpt-4o, 2.1 s)" means you're done.
-4. Set `ADMIN_PIN` if the site is reachable from the internet: every AI call costs money and only unlocked devices can make them.
+3. Tap **Test all models** there. "Main: Gemini · gemini-3.8-flash works (2.1 s)" means you're done.
+4. Recommended: under **Fallback models**, tap **Add fallback model** and pick a lighter model (tap **Load model list** to see the exact names your key can use, e.g. a `flash-lite` one). When the main model is overloaded ("high demand") or retired, the app switches to it on its own.
+5. Set `ADMIN_PIN` if the site is reachable from the internet: every AI call costs money and only unlocked devices can make them.
 
-**Cost:** one photo is roughly 1,500 input + 300 output tokens. At GPT-4o's list price when this was written that is under **1 US cent per photo**; Gemini 2.5 Flash is several times cheaper. Prices change, so check the provider's pricing page.
+**Cost:** one photo is roughly 1,500 input + 300 output tokens. At GPT-4o's list price when this was written that is under **1 US cent per photo**; Gemini Flash is several times cheaper. Prices change, so check the provider's pricing page.
 
 ### How the owner uses it
 
@@ -340,6 +342,18 @@ Below **70 % confidence** a warning says *"We are not fully confident about this
 It also plugs into **Scan to add products**: an unknown barcode's *Add* form offers **Fill in from a photo**, which keeps the scanned barcode and returns to the scanner after saving.
 
 > **The price is an AI estimate, not a market price.** It is labelled *AI Estimated Price* everywhere, comes from the model's general knowledge of the product type, brand and specs in your market (derived from `NEXT_PUBLIC_NUMBER_LOCALE`, e.g. Vietnam) and is rounded to a shop-style price (VND: nearest 1,000). There is no web lookup in this version.
+
+### When a model is overloaded or retired: fallback models
+
+Providers regularly overload ("This model is currently experiencing high demand") and retire models ("no longer available to new users"). So every photo goes through a chain: the main model, then up to 3 fallback models in the order set in Settings (`src/server/ai/vision/fallback.ts`):
+
+| Error | What the app does |
+|---|---|
+| Overloaded, rate-limited, too slow | Waits ~1 s and retries the same model once (twice when there is no fallback), then the next model |
+| Model retired / not found, key rejected, out of credit | Next model straight away |
+| Photo blocked by a safety filter | Stops: another model would refuse too; asks for another photo |
+
+All attempts share a 50 s budget (Vercel stops a request at 60 s). A fallback can use its provider's key or its **own key** (e.g. a second project you own, or a paid one). Changing keys does *not* help with overload: that is the model's capacity, the same for every key, and limits are per project, not per key. Don't create extra free accounts to get around limits: that breaks the providers' terms and can get the account blocked. **Recognition logs** show the path of each photo, e.g. *"Tried: gemini-3.8-flash ✗ overloaded → gemini-3.8-flash ✗ overloaded → gemini-3.8-flash-lite ✓"*, and **Test all models** shows which entries work right now.
 
 ### How it works
 
@@ -381,7 +395,7 @@ The AI code knows nothing about the UI and the UI knows nothing about providers:
 | API | `src/app/api/ai/**` | HTTP in/out |
 | UI | `src/components/recognition/*` | Screens only, via `lib/api-client.ts` |
 
-**Adding a provider** (e.g. Claude, a local model): implement `VisionProvider` in `ai/vision/providers/<name>.ts`, add it to `factory.ts` and to `PROVIDERS` in `ai-settings-service.ts`.
+**Adding a provider** (e.g. Claude, a local model): implement `VisionProvider` (and optionally `listModels`) in `ai/vision/providers/<name>.ts`, add it to `factory.ts` and to `PROVIDERS` in `ai-settings-service.ts`. It then works as a main or fallback model automatically, because `FallbackVisionProvider` only sees the `VisionProvider` interface.
 
 **Adding a camera feature** (invoice recognition, shelf recognition, stock counting, image search): add a task file in `ai/tasks/` with its own prompt and JSON schema and call `getVisionProvider().generateStructured(...)`. Providers, settings, keys, image storage, rate limiting and error handling are reused as-is. For barcode recognition the phone-side ZXing decoder (`lib/barcode-detector.ts`) is already available.
 
@@ -402,13 +416,13 @@ The AI code knows nothing about the UI and the UI knows nothing about providers:
 ## Testing and quality
 
 ```bash
-npm test          # 58 unit tests
+npm test          # 69 unit tests
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-The tests cover the AI provider adapters (request format and error mapping with a mocked `fetch`), the recognition prompt/schema and answer clean-up, duplicate-match scoring, API-key encryption, search ranking against the real demo catalogue (`pan` → Panasonic, voice phrases with filler words, typos, exact number matching, barcode priority, ambiguity detection), Vietnamese text folding, money parsing, barcode check digits and CSV import/export round-trips.
+The tests cover the AI provider adapters (request format and error mapping with a mocked `fetch`), the fallback chain (retry, skip, stop, time budget) and model-list filtering, the recognition prompt/schema and answer clean-up, duplicate-match scoring, API-key encryption, search ranking against the real demo catalogue (`pan` → Panasonic, voice phrases with filler words, typos, exact number matching, barcode priority, ambiguity detection), Vietnamese text folding, money parsing, barcode check digits and CSV import/export round-trips.
 
 ---
 
@@ -457,5 +471,7 @@ npm start                # port 3000; set PORT=… to change
 | *Detect Product* says "not set up" | Add a key in **Manage products → Smart Recognition settings** (or `OPENAI_API_KEY` / `GEMINI_API_KEY` on the server, then redeploy) and tap **Test**. |
 | AI test fails with "did not accept the API key" / "run out of credit" | Check the key at the provider; OpenAI needs prepaid credit on the account. |
 | Saved API key "disappeared" after a redeploy | `SETTINGS_SECRET` (or, without it, `DATABASE_URL`) changed, so the saved key can't be decrypted. Re-enter it, or move it to an environment variable. |
-| Recognition is slow or times out on Vercel | The route allows 60 s (`maxDuration`); on the Hobby plan keep the default fluid compute on. Try Gemini 2.5 Flash, which is usually fastest. |
+| "This model is currently experiencing high demand" | The provider's servers are overloaded (not your key or your usage; free tiers are served last). Add a fallback model in Settings, or wait a few minutes. |
+| "This model … is no longer available to new users" | The provider retired that model. Tap **Load model list** in Settings and choose a current one (the default is updated in code from time to time). |
+| Recognition is slow or times out on Vercel | The route allows 60 s (`maxDuration`); on the Hobby plan keep the default fluid compute on. Try Gemini Flash, which is usually fastest. |
 | Prices look wrong after changing currency | `NEXT_PUBLIC_*` are build-time: rebuild. Existing prices are stored in minor units of the old currency. |

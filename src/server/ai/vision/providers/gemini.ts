@@ -1,6 +1,6 @@
 import "server-only";
 import { toGeminiSchema } from "../json-schema";
-import { codeForStatus, parseModelJson, postJson, toBase64 } from "../http";
+import { codeForStatus, parseModelJson, requestJson, toBase64 } from "../http";
 import {
   VisionProviderError,
   type StructuredVisionRequest,
@@ -8,7 +8,9 @@ import {
   type VisionProvider,
 } from "../types";
 
-export const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+// Google retires models for new users after about a year (gemini-2.5-flash
+// was in Oct 2026); the Settings page can override this without a deploy.
+export const GEMINI_DEFAULT_MODEL = "gemini-3.8-flash";
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 interface GenerateContentResponse {
@@ -44,11 +46,12 @@ export class GeminiVisionProvider implements VisionProvider {
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: toGeminiSchema(req.schema),
-        temperature: 0.2,
+        // No temperature: Gemini 3 models are tuned for the default and may
+        // loop or degrade when it is lowered.
       },
     };
 
-    const data = (await postJson(
+    const data = (await requestJson(
       this.id,
       `${BASE_URL}/models/${encodeURIComponent(this.model)}:generateContent`,
       { headers: { "x-goog-api-key": this.apiKey }, body, timeoutMs: req.timeoutMs, signal: req.signal },
@@ -73,6 +76,7 @@ export class GeminiVisionProvider implements VisionProvider {
 
     return {
       output: parseModelJson(this.id, text),
+      provider: this.id,
       model: data.modelVersion ?? this.model,
       usage: {
         inputTokens: data.usageMetadata?.promptTokenCount,
@@ -80,6 +84,30 @@ export class GeminiVisionProvider implements VisionProvider {
       },
     };
   }
+
+  async listModels(signal?: AbortSignal): Promise<string[]> {
+    const data = (await requestJson(
+      this.id,
+      `${BASE_URL}/models?pageSize=1000`,
+      { headers: { "x-goog-api-key": this.apiKey }, timeoutMs: 15_000, signal },
+      classifyGeminiError,
+    )) as { models?: { name?: string; supportedGenerationMethods?: string[] }[] };
+    return pickGeminiVisionModels(data.models ?? []);
+  }
+}
+
+// Gemini models that generate media, embed, speak or stream — not useful
+// for "read this photo and answer in JSON".
+const NON_VISION_GEMINI = /embed|imagen|image|tts|audio|live|aqa|veo|lyria|robotics|computer-use|learnlm/i;
+
+/** Text-generating Gemini models, Flash first (fast and cheap), newest first. */
+export function pickGeminiVisionModels(models: { name?: string; supportedGenerationMethods?: string[] }[]): string[] {
+  const ids = models
+    .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+    .map((m) => (m.name ?? "").replace(/^models\//, ""))
+    .filter((id) => id.startsWith("gemini") && !NON_VISION_GEMINI.test(id));
+  const rank = (id: string) => (/flash/.test(id) ? 0 : 1);
+  return [...new Set(ids)].sort((a, b) => rank(a) - rank(b) || b.localeCompare(a, "en", { numeric: true }));
 }
 
 export function classifyGeminiError(status: number, body: unknown) {

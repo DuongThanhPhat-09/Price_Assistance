@@ -35,15 +35,30 @@ export interface StructuredVisionRequest {
 export interface StructuredVisionResponse {
   /** Parsed JSON — not yet validated; the task validates it. */
   output: unknown;
+  /** Provider that actually answered (differs from the first one after a fallback). */
+  provider: VisionProviderId;
   /** Model that actually answered (may be more specific than the one requested). */
   model: string;
   usage?: { inputTokens?: number; outputTokens?: number };
+  /** Every call made, in order (set by FallbackVisionProvider). */
+  attempts?: VisionAttempt[];
+}
+
+/** One call to one model, for logs: did it answer, and if not, why. */
+export interface VisionAttempt {
+  provider: VisionProviderId;
+  model: string;
+  ok: boolean;
+  code?: VisionErrorCode;
+  ms: number;
 }
 
 export interface VisionProvider {
   readonly id: VisionProviderId;
   readonly model: string;
   generateStructured(request: StructuredVisionRequest): Promise<StructuredVisionResponse>;
+  /** Model ids this key can use for image → text, best first. */
+  listModels?(signal?: AbortSignal): Promise<string[]>;
 }
 
 export type VisionErrorCode =
@@ -59,6 +74,9 @@ export type VisionErrorCode =
   | "unavailable"; // network error or provider 5xx
 
 export class VisionProviderError extends Error {
+  /** Calls made before giving up (set by FallbackVisionProvider). */
+  attempts?: VisionAttempt[];
+
   constructor(
     public readonly code: VisionErrorCode,
     message: string,
