@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Keyboard, LoaderCircle, Mic, MicOff, RefreshCw } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { ProductListItem } from "@/components/product/product-list-item";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -36,19 +36,16 @@ export function VoiceScreen() {
           if (res.results.length === 0) continue;
 
           if (res.confidentMatchId) {
-            api.recordSearch(alt, "voice", res.confidentMatchId);
-            // replace: pressing Back from the product returns Home, not here.
-            router.replace(`/product/${res.confidentMatchId}?q=${encodeURIComponent(alt)}`);
+            // In Manage Products a found product opens for editing.
+            router.push(`/admin/products/${res.confidentMatchId}/edit`);
             return;
           }
           // Only offer the close contenders, not every loose match.
           const top = res.results[0].score;
           const contenders = res.results.filter((r) => r.score >= top * 0.6).slice(0, 6);
-          api.recordSearch(alt, "voice", null);
           setPhase({ kind: "choose", heard: alt, results: contenders });
           return;
         }
-        api.recordSearch(heard, "voice", null);
         setPhase({ kind: "not-found", heard });
       } catch {
         setPhase({ kind: "failed", heard });
@@ -107,9 +104,8 @@ export function VoiceScreen() {
   const busy = phase.kind === "searching";
 
   return (
-    <>
-      <PageHeader title={t("voice.title")} backHref="/" />
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-10 pt-8 text-center">
+    <AdminShell>
+      <div className="flex flex-col items-center pt-2 text-center">
         {/* Giant microphone button */}
         <div className="relative flex size-56 items-center justify-center">
           {listening && (
@@ -156,10 +152,7 @@ export function VoiceScreen() {
               <li key={product.id}>
                 <ProductListItem
                   product={product}
-                  onSelect={() => {
-                    api.recordSearch(phase.heard, "voice", product.id);
-                    router.push(`/product/${product.id}`);
-                  }}
+                  onSelect={() => router.push(`/admin/products/${product.id}/edit`)}
                 />
               </li>
             ))}
@@ -176,7 +169,7 @@ export function VoiceScreen() {
               </Button>
             )}
             <Button asChild size="xl" variant="outline">
-              <Link href={heardText ? `/search?q=${encodeURIComponent(heardText)}` : "/search"}>
+              <Link href={heardText ? `/admin/search?q=${encodeURIComponent(heardText)}` : "/admin/search"}>
                 <Keyboard aria-hidden />
                 {t("voice.typeInstead")}
               </Link>
@@ -194,7 +187,7 @@ export function VoiceScreen() {
         {phase.kind === "speech" && canListen && (
           <p className="mt-10 text-xl text-muted-foreground">{t("voice.example")}</p>
         )}
-      </main>
-    </>
+      </div>
+    </AdminShell>
   );
 }

@@ -30,7 +30,9 @@
   --input: #64748b;
   --ring: #f59e0b;
 
-  /* Action colours — one colour per way of finding a product. */
+  /* Customer camera — the one main action of the app. */
+  --action-camera: #1d4ed8;
+  /* Admin tools — one colour per way of finding a product. */
   --action-scan: #1d4ed8;
   --action-voice: #047857;
   --action-search: #b45309;
@@ -62,6 +64,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-action-camera: var(--action-camera);
   --color-action-scan: var(--action-scan);
   --color-action-voice: var(--action-voice);
   --color-action-search: var(--action-search);

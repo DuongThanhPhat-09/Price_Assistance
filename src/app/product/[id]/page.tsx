@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ saved?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -22,6 +22,6 @@ export default async function ProductPage({ params, searchParams }: Props) {
   if (!id) notFound();
   const product = await getProductById(id);
   if (!product) notFound();
-  const { q } = await searchParams;
-  return <ProductDetails product={product} query={typeof q === "string" ? q : undefined} />;
+  const { saved } = await searchParams;
+  return <ProductDetails product={product} justSaved={saved === "1"} />;
 }

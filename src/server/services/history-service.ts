@@ -19,10 +19,15 @@ export async function recordSearch(input: {
 
 /**
  * Most recent searches, newest first, with duplicates collapsed so the
- * home screen never shows the same product twice.
+ * History screen never shows the same product twice. `productsOnly` skips
+ * searches that never reached a product.
  */
-export async function getRecentSearches(limit = 8): Promise<RecentSearchDTO[]> {
+export async function getRecentSearches(
+  limit = 8,
+  opts: { productsOnly?: boolean } = {},
+): Promise<RecentSearchDTO[]> {
   const rows = await prisma.searchHistory.findMany({
+    where: opts.productsOnly ? { productId: { not: null } } : undefined,
     orderBy: { createdAt: "desc" },
     take: limit * 6,
     include: {

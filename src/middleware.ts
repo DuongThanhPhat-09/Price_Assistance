@@ -4,8 +4,8 @@ import { ADMIN_COOKIE } from "@/lib/config";
 
 /**
  * When ADMIN_PIN is set, the admin pages, every data-changing API call and
- * every AI call require the admin cookie. Looking up prices never requires
- * a PIN.
+ * every AI call except photo lookup require the admin cookie. Looking up
+ * prices (by photo too) never requires a PIN.
  */
 function needsAdmin(req: NextRequest): boolean {
   const { pathname } = req.nextUrl;
@@ -15,7 +15,10 @@ function needsAdmin(req: NextRequest): boolean {
   if (pathname === "/api/products/export") return true;
   if (pathname.startsWith("/api/products")) return method !== "GET";
   if (pathname === "/api/search-history") return method === "DELETE";
-  // AI calls cost money and the settings hold API keys.
+  // Photo lookup is the customer's main way in, so it stays open like every
+  // other price lookup (rate-limited per client in the route). Saving,
+  // logs and settings (which hold API keys) still need the PIN.
+  if (pathname === "/api/ai/recognize") return false;
   if (pathname.startsWith("/api/ai/")) return true;
   return false;
 }

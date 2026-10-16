@@ -5,16 +5,18 @@ import { toProductDTO } from "../mappers";
 import { recognizeProduct } from "../ai/tasks/product-recognition";
 import { getVisionProvider } from "../ai/vision/factory";
 import { VisionProviderError, type VisionImage } from "../ai/vision/types";
+import { collectPriceSuggestions } from "../pricing";
 import { imageStore } from "./image-storage";
 import { createProduct, getProductByBarcode, listCategories } from "./product-service";
 import { invalidateSearchIndex, searchProducts } from "./search-service";
 import { isValidGs1 } from "@/lib/barcode";
 import type { Locale } from "@/lib/config";
-import { LOW_CONFIDENCE_THRESHOLD, rankProductMatches } from "@/lib/recognition/matching";
+import { decideLookup, LOW_CONFIDENCE_THRESHOLD, rankProductMatches } from "@/lib/recognition/matching";
 import type {
   ProductDTO,
   ProductMatchDTO,
   RecognitionLogDTO,
+  RecognitionMode,
   RecognitionResponse,
   RecognitionStatus,
   RecognizedProductDTO,
@@ -26,7 +28,8 @@ import type { ProductInput } from "@/lib/validation";
 /**
  * Smart Product Recognition workflow:
  *   photo → AI (any provider) → match against the catalogue → history row
- *   → owner reviews → save as new product, or link to an existing one.
+ *   → lookup mode: a match above 90% opens that product straight away;
+ *   → otherwise the owner reviews → save as new product, or link to an existing one.
  * Nothing is ever saved as a product without the owner tapping Save.
  */
 
@@ -61,6 +64,8 @@ export async function recognizeProductPhoto(input: {
   locale: Locale;
   /** Barcode the phone decoded from the same photo (ZXing — checksum-verified). */
   barcode: string | null;
+  /** "lookup" (customer camera) decides whether to open a known product. */
+  mode?: RecognitionMode;
   signal?: AbortSignal;
 }): Promise<RecognitionResponse> {
   const provider = await getVisionProvider();
@@ -103,7 +108,12 @@ export async function recognizeProductPhoto(input: {
   const phoneBarcode = input.barcode?.replace(/\D/g, "") ?? "";
   if (isValidGs1(phoneBarcode)) result.barcode = phoneBarcode;
 
-  const matches = await findProductMatches(result);
+  const [matches, priceSuggestions] = await Promise.all([
+    findProductMatches(result),
+    collectPriceSuggestions(result, input.signal),
+  ]);
+  const outcome = input.mode === "lookup" ? decideLookup(matches) : null;
+  const opened = outcome?.kind === "existing" ? outcome.productId : null;
   const durationMs = Date.now() - started;
   const row = await prisma.productRecognitionHistory.create({
     data: {
@@ -112,7 +122,9 @@ export async function recognizeProductPhoto(input: {
       confidence: result.confidence,
       provider: recognized.provider,
       aiModel: recognized.model,
-      status: "recognized",
+      // A lookup that opened a known product is logged as "Matched existing".
+      status: opened ? "linked" : "recognized",
+      productId: opened,
       result: result as unknown as Prisma.InputJsonObject,
       attempts: recognized.attempts as unknown as Prisma.InputJsonArray,
       durationMs,
@@ -127,6 +139,8 @@ export async function recognizeProductPhoto(input: {
     model: recognized.model,
     result,
     matches,
+    outcome,
+    priceSuggestions,
     lowConfidence: result.confidence < LOW_CONFIDENCE_THRESHOLD,
     durationMs,
   };

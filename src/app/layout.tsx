@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Price Assistant", template: "%s · Price Assistant" },
-  description: "Check product price, stock and shelf location in seconds — scan, speak or search.",
+  description: "Take a photo of a product to see its price, stock and shelf location in seconds.",
   applicationName: "Price Assistant",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
   appleWebApp: { capable: true, title: "Price Assistant", statusBarStyle: "default" },

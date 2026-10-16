@@ -31,6 +31,7 @@ async function readImage(file: FormDataEntryValue | null, maxBytes: number) {
  *   image      product photo (JPEG/PNG/WebP, ≤ 4 MB) — required
  *   thumbnail  small JPEG kept as the product picture — optional
  *   barcode    barcode the phone decoded from the photo — optional
+ *   mode       "lookup" (customer camera: open a known product) or "create" (default)
  * → 200 RecognitionResponse
  */
 export const POST = withErrorHandling(async (req: NextRequest) => {
@@ -52,6 +53,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
 
   const thumb = await readImage(form.get("thumbnail"), MAX_THUMBNAIL_BYTES);
   const barcode = form.get("barcode");
+  const mode = form.get("mode") === "lookup" ? "lookup" : "create";
   const cookieLocale = req.cookies.get(LOCALE_COOKIE)?.value;
   const locale: Locale = cookieLocale === "en" || cookieLocale === "vi" ? cookieLocale : appConfig.defaultLocale;
 
@@ -61,6 +63,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       thumbnail: typeof thumb === "object" ? thumb : null,
       locale,
       barcode: typeof barcode === "string" ? barcode.slice(0, 64) : null,
+      mode,
       signal: req.signal,
     });
     return NextResponse.json(result);

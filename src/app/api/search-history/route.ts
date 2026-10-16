@@ -6,8 +6,9 @@ import { formatZodError, searchHistoryInputSchema } from "@/lib/validation";
 export const dynamic = "force-dynamic";
 
 export const GET = withErrorHandling(async (req: NextRequest) => {
-  const limit = Math.min(30, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 8));
-  return NextResponse.json(await getRecentSearches(limit));
+  const sp = req.nextUrl.searchParams;
+  const limit = Math.min(30, Math.max(1, Number(sp.get("limit")) || 8));
+  return NextResponse.json(await getRecentSearches(limit, { productsOnly: sp.get("products") === "1" }));
 });
 
 export const POST = withErrorHandling(async (req: NextRequest) => {

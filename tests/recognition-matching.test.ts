@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactCode, nameSimilarity, rankProductMatches, scoreProductMatch } from "@/lib/recognition/matching";
+import { compactCode, decideLookup, nameSimilarity, rankProductMatches, scoreProductMatch } from "@/lib/recognition/matching";
 
 const socket = {
   id: 1,
@@ -57,5 +57,34 @@ describe("product matching", () => {
 
   it("compacts model codes", () => {
     expect(compactCode("WEG-6801 W")).toBe("weg6801w");
+  });
+});
+
+describe("lookup decision", () => {
+  const m = (id: number, score: number, reasons: ("barcode" | "model" | "name" | "brand")[] = ["name"]) => ({
+    product: { id },
+    score,
+    reasons,
+  });
+
+  it("opens the product when exactly one match is above 90%", () => {
+    expect(decideLookup([m(1, 0.95, ["model"]), m(2, 0.7)])).toEqual({ kind: "existing", productId: 1 });
+  });
+
+  it("treats exactly 90% as not confident enough", () => {
+    expect(decideLookup([m(1, 0.9)])).toEqual({ kind: "new" });
+  });
+
+  it("asks which one when several products are above 90%", () => {
+    expect(decideLookup([m(1, 0.95, ["model"]), m(2, 0.95, ["model"])])).toEqual({ kind: "choose", productIds: [1, 2] });
+  });
+
+  it("always opens a barcode match", () => {
+    expect(decideLookup([m(1, 1, ["barcode"]), m(2, 0.95, ["model"])])).toEqual({ kind: "existing", productId: 1 });
+  });
+
+  it("starts the new-product flow when nothing matches", () => {
+    expect(decideLookup([])).toEqual({ kind: "new" });
+    expect(decideLookup([m(1, 0.75)])).toEqual({ kind: "new" });
   });
 });

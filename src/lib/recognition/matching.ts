@@ -1,6 +1,6 @@
 import { tokenMatch } from "../search/fuzzy";
 import { normalizeText, tokenize } from "../text";
-import type { MatchReason } from "../types";
+import type { LookupOutcome, MatchReason } from "../types";
 
 /**
  * Decides whether a recognised photo is a product the shop already has,
@@ -118,4 +118,22 @@ export function rankProductMatches<T extends MatchCandidate & { id: number }>(
     .filter((m) => m.score >= MIN_MATCH_SCORE)
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_MATCHES);
+}
+
+/**
+ * Customer (lookup) mode opens a product straight away only when the match
+ * is better than this — anything less goes to the "new product" review.
+ */
+export const AUTO_OPEN_MATCH_SCORE = 0.9;
+
+/** What lookup mode should do with ranked matches (best first). */
+export function decideLookup(matches: { product: { id: number }; score: number; reasons: MatchReason[] }[]): LookupOutcome {
+  const top = matches[0];
+  if (!top) return { kind: "new" };
+  // A checksum-verified barcode is unambiguous, whatever else scored well.
+  if (top.reasons.includes("barcode")) return { kind: "existing", productId: top.product.id };
+  const confident = matches.filter((m) => m.score > AUTO_OPEN_MATCH_SCORE);
+  if (confident.length === 0) return { kind: "new" };
+  if (confident.length === 1) return { kind: "existing", productId: confident[0].product.id };
+  return { kind: "choose", productIds: confident.map((m) => m.product.id) };
 }

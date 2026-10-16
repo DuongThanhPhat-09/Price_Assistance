@@ -104,6 +104,37 @@ export interface ProductMatchDTO {
   reasons: MatchReason[];
 }
 
+/**
+ * Where a reference price comes from. Only "ai_estimate" exists today; the
+ * others are reserved for future lookups (see src/server/pricing).
+ */
+export type PriceSourceId = "ai_estimate" | "ecommerce" | "supplier" | "competitor";
+
+/** A reference price shown next to the shop's own price. Never applied automatically. */
+export interface PriceSuggestionDTO {
+  source: PriceSourceId;
+  /** Minor units. */
+  amount: number;
+  /** "ai" = a model's guess; "observed" = a price actually seen somewhere. */
+  kind: "ai" | "observed";
+  /** Shop, supplier or site name for observed prices. */
+  sourceName: string | null;
+  url: string | null;
+  /** ISO time the price was produced or seen. */
+  observedAt: string;
+}
+
+export type LookupOutcome =
+  /** One product is clearly the one in the photo: open it, no questions. */
+  | { kind: "existing"; productId: number }
+  /** Several products are equally likely (e.g. same model, two colours). */
+  | { kind: "choose"; productIds: number[] }
+  /** Nothing in the catalogue is close enough: offer to add it. */
+  | { kind: "new" };
+
+/** "lookup" = customer mode (open known products); "create" = admin adding stock. */
+export type RecognitionMode = "lookup" | "create";
+
 export interface RecognitionResponse {
   recognitionId: number;
   /** Thumbnail of the photo, stored so it can become the product image. */
@@ -112,6 +143,10 @@ export interface RecognitionResponse {
   model: string;
   result: RecognizedProductDTO;
   matches: ProductMatchDTO[];
+  /** Lookup mode only: open a product, ask which one, or offer to add it. */
+  outcome: LookupOutcome | null;
+  /** Reference prices, AI estimate first. Today only the AI estimate. */
+  priceSuggestions: PriceSuggestionDTO[];
   /** Below the threshold: warn, and require an explicit "I checked" before saving. */
   lowConfidence: boolean;
   durationMs: number;

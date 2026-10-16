@@ -2,13 +2,13 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/layout/page-header";
 import { BarcodeScanner } from "@/components/scan/barcode-scanner";
 import { ManualBarcodeForm } from "@/components/scan/manual-barcode-form";
 import { api } from "@/lib/api-client";
 import { cleanBarcode } from "@/lib/barcode";
 import { successFeedback } from "@/lib/feedback";
 import { useI18n } from "@/i18n/i18n-provider";
+import { AdminShell } from "./admin-shell";
 
 /**
  * Stock-taking loop for the owner: scan → Add form (new barcode) or Edit
@@ -48,21 +48,18 @@ export function AdminScanScreen() {
   );
 
   return (
-    <>
-      <PageHeader title={t("adminScan.title")} backHref="/admin" narrow />
-      <main className="mx-auto max-w-xl px-4 pb-10 pt-4">
-        <p className="mb-4 text-lg leading-snug text-muted-foreground">{t("adminScan.hint")}</p>
+    <AdminShell narrow>
+      <p className="mb-4 text-lg leading-snug text-muted-foreground">{t("adminScan.hint")}</p>
 
-        <BarcodeScanner onDetected={handleCode} busyCode={lookingUp} />
+      <BarcodeScanner onDetected={handleCode} busyCode={lookingUp} />
 
-        {failed && (
-          <p role="alert" className="mt-4 rounded-2xl bg-destructive/10 p-4 text-lg font-medium text-destructive">
-            {t("common.error")}
-          </p>
-        )}
+      {failed && (
+        <p role="alert" className="mt-4 rounded-2xl bg-destructive/10 p-4 text-lg font-medium text-destructive">
+          {t("common.error")}
+        </p>
+      )}
 
-        <ManualBarcodeForm onSubmit={(code) => void handleCode(code)} className="mt-8" />
-      </main>
-    </>
+      <ManualBarcodeForm onSubmit={(code) => void handleCode(code)} className="mt-8" />
+    </AdminShell>
   );
 }

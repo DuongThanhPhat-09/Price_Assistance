@@ -23,7 +23,6 @@ import { api } from "@/lib/api-client";
 import type { AISettingsDTO, AITestResult, ApiKeySource, VisionProviderId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/i18n-provider";
-import { RecognitionLogs } from "./recognition-logs";
 
 const PROVIDERS: { id: VisionProviderId; label: string; env: string; keyUrl: string }[] = [
   { id: "openai", label: "OpenAI", env: "OPENAI_API_KEY", keyUrl: "https://platform.openai.com/api-keys" },
@@ -184,7 +183,7 @@ export function AISettingsScreen() {
 
   return (
     <>
-      <PageHeader title={t("aiSettings.title")} backHref="/admin" />
+      <PageHeader title={t("aiSettings.title")} backHref="/admin/settings" />
       <main className="mx-auto max-w-3xl space-y-8 px-4 pb-12 pt-6">
         {loadError && (
           <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-lg font-medium text-destructive">
@@ -479,10 +478,6 @@ export function AISettingsScreen() {
                 settings.fallbacks.some((f) => f.keySource === "own")) && (
                 <p className="text-base text-muted-foreground">{t("aiSettings.secretTip")}</p>
               )}
-
-            <div className="border-t-2 border-border pt-8">
-              <RecognitionLogs />
-            </div>
           </>
         )}
       </main>

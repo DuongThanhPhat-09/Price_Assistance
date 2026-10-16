@@ -11,11 +11,18 @@ import { useI18n } from "@/i18n/i18n-provider";
 export function PossibleMatches({
   matches,
   busyId,
+  title,
+  hint,
+  useLabel,
   onUse,
   onDismiss,
 }: {
   matches: ProductMatchDTO[];
   busyId: number | null;
+  /** Override the admin wording (customer camera asks "Is it one of these?"). */
+  title?: string;
+  hint?: string;
+  useLabel?: string;
   onUse: (productId: number) => void;
   onDismiss: () => void;
 }) {
@@ -24,9 +31,9 @@ export function PossibleMatches({
   return (
     <section aria-labelledby="matches-title" className="rounded-3xl border-2 border-primary bg-accent p-4">
       <h2 id="matches-title" className="text-2xl font-extrabold">
-        {t("match.title")}
+        {title ?? t("match.title")}
       </h2>
-      <p className="mt-1 text-lg leading-snug">{t("match.hint")}</p>
+      <p className="mt-1 text-lg leading-snug">{hint ?? t("match.hint")}</p>
 
       <ul className="mt-4 space-y-3">
         {matches.map((m) => (
@@ -51,7 +58,7 @@ export function PossibleMatches({
             </div>
             <Button className="mt-3 w-full" disabled={busyId !== null} onClick={() => onUse(m.product.id)}>
               {busyId === m.product.id ? <LoaderCircle className="animate-spin" aria-hidden /> : <CircleCheck aria-hidden />}
-              {t("match.use")}
+              {useLabel ?? t("match.use")}
             </Button>
           </li>
         ))}

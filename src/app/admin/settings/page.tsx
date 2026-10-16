@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { History, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/layout/page-header";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,9 +39,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
-      <PageHeader title={t("settings.title")} backHref="/admin" />
-      <main className="mx-auto max-w-3xl space-y-8 px-4 pb-12 pt-6">
+    <AdminShell>
+      <div className="space-y-8">
         <p className="text-base text-muted-foreground">{t("settings.thisDevice")}</p>
 
         <div className="space-y-2">
@@ -98,7 +97,7 @@ export default function SettingsPage() {
             {t("settings.logout")}
           </Button>
         </div>
-      </main>
-    </>
+      </div>
+    </AdminShell>
   );
 }

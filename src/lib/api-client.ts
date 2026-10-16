@@ -6,6 +6,7 @@ import type {
   ProductListResponse,
   RecentSearchDTO,
   RecognitionLogDTO,
+  RecognitionMode,
   RecognitionResponse,
   SearchResponse,
   SearchType,
@@ -84,7 +85,8 @@ export const api = {
     return request<ImportResult>("/api/products/import", { method: "POST", body: form });
   },
 
-  recent: (limit = 8) => request<RecentSearchDTO[]>(`/api/search-history?limit=${limit}`),
+  recent: (limit = 8, opts: { productsOnly?: boolean } = {}) =>
+    request<RecentSearchDTO[]>(`/api/search-history?limit=${limit}${opts.productsOnly ? "&products=1" : ""}`),
   clearHistory: () => request<{ deleted: number }>("/api/search-history", { method: "DELETE" }),
 
   /**
@@ -101,11 +103,15 @@ export const api = {
 
   /* Smart Product Recognition */
 
-  recognize: (photo: Blob, opts: { thumbnail?: Blob | null; barcode?: string | null; signal?: AbortSignal } = {}) => {
+  recognize: (
+    photo: Blob,
+    opts: { thumbnail?: Blob | null; barcode?: string | null; mode?: RecognitionMode; signal?: AbortSignal } = {},
+  ) => {
     const form = new FormData();
     form.append("image", photo, "photo.jpg");
     if (opts.thumbnail) form.append("thumbnail", opts.thumbnail, "thumbnail.jpg");
     if (opts.barcode) form.append("barcode", opts.barcode);
+    if (opts.mode) form.append("mode", opts.mode);
     return request<RecognitionResponse>("/api/ai/recognize", { method: "POST", body: form, signal: opts.signal });
   },
   saveRecognized: (

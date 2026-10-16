@@ -2,7 +2,7 @@
   "name": "price-assistant",
   "version": "1.0.0",
   "private": true,
-  "description": "Instant price, stock and product lookup for small shops — scan, speak or search.",
+  "description": "Point the camera at a product and see its price, stock and shelf: camera-first lookup for small shops.",
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https -H 0.0.0.0",

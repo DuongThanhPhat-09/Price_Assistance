@@ -1,12 +1,12 @@
 # Price Assistant
 
-Check a product's **price, stock and shelf location in under 3 seconds**: scan the barcode, say the name, or type it.
+**Point the phone at a product and know its price.** Open the app, tap one button, take a photo: the price, stock and shelf location appear, usually within 5 seconds and without typing anything.
 
 Built for small household shops (electrical, plumbing, hardware, building materials) whose owners and staff are often **55–70 years old and not technical**. Every screen is designed to be used **without training**.
 
-| Scan | Speak | Type |
-|---|---|---|
-| Camera opens immediately. The product card appears the moment a barcode is read, with no confirm button. | The mic starts listening as soon as the screen opens. *"Ống nước phi 27"* goes straight to the product. | Suggestions appear as you type. Search ignores accents and tolerates typos. |
+| Customer mode (home screen) | Admin mode (Manage Products) |
+|---|---|
+| One giant **📸 Chụp sản phẩm** button. Photo → product → price. A product the shop already has opens straight away: no confirm, no editing, no admin controls. An unknown product becomes a pre-filled **New Product Detected** form. | Every inventory tool, in tabs: Products (add / edit / delete), Barcode Scanner, Search, Voice Search, Import / Export, Recognition Logs, Settings. Optionally behind a PIN. |
 
 ---
 
@@ -30,23 +30,31 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 
 ## Features
 
-**Lookup (no login needed)**
-- **Home screen:** three giant buttons (Scan / Speak / Type) plus *Recent searches*, so the last products can be reopened with one tap.
-- **Barcode scan:** EAN-13, EAN-8, UPC-A/E, Code 128, Code 39, ITF and QR. Beeps and vibrates on success. Frames are decoded at camera resolution (not the on-screen size) by the phone's native `BarcodeDetector` (Android) or by **ZXing-C++ in WebAssembly** everywhere else (iPhone, Windows, Firefox), which tolerates the blur of real camera frames far better than html5-qrcode's built-in zxing-js. If the live camera struggles, **Take a photo of the barcode** reads it from a sharp photo instead, and a tip appears after 10 s. You can also type the number, or use a **USB/Bluetooth barcode gun**: it types the digits and presses Enter, and the product opens.
-- **Voice search:** Web Speech API in Vietnamese (`vi-VN`) or English. It tries every alternative the recogniser heard and ignores filler words like *"giá … bao nhiêu"*. When the match is clear, the product opens; when several products tie (e.g. two brands of phi 27 pipe), only the close candidates are shown.
-- **Fuzzy search:** accent-insensitive (`ong nuoc` = `Ống nước`), prefix-aware (`pan` → Panasonic…), typo-tolerant (`panasonik`), with exact number matching (`27` never returns `21`) and barcode search. A search takes about 10 ms.
-- **Product card:** large price, cost price and profit (can be hidden), stock with a colour + icon + word status, shelf location, category, barcode and last-updated time. A fixed bottom bar makes checking the *next* product one tap.
-- **Vietnamese / English** switch with one tap; the speech language follows it.
+**Customer mode: photo → product → price (no login needed)**
+- **Home screen:** store logo, *"Chụp sản phẩm để xem giá"*, one full-width camera button, and only two secondary buttons: **Lịch sử** (History) and **Quản lý sản phẩm** (Manage Products).
+- **One tap to the camera:** the button opens the phone's own camera app directly (best focus for small print).
+- **Instant answer:** a barcode visible in the photo is read on the phone and looked up directly (under a second). Otherwise the AI recognises the product and it is matched against the catalogue. A single match **above 90 %** opens the product immediately; if several products tie (same model, two colours) the screen asks *"Which product is it?"* with one tap per option.
+- **New Product Detected:** no suitable match → a review screen pre-filled by the AI (name, brand, model, variant, category, barcode, **Suggested Price (AI Estimate)**, store selling price, stock, shelf location, description, detected keywords, text read from the package, confidence) with **Save Product** and **Retake Photo**. If an admin PIN is set, it is asked for right there, so nothing typed is lost.
+- **Result screen:** large photo, product name, then the **selling price as the biggest thing on screen**, stock, shelf location, category, barcode and last-updated time. Read-only; the bottom bar has *Home* and **Chụp sản phẩm khác** (photograph the next product).
+- **History:** the products checked lately, newest first, one tap to reopen.
+- **Vietnamese / English** switch with one tap.
 - **Installable** (PWA manifest): "Add to Home Screen" makes it open like an app.
 
-**Admin**
-- **📸 Detect Product (Smart Product Recognition):** take a photo of a product or its box and the AI (OpenAI GPT-4o or Google Gemini) reads the packaging and fills in name, brand, model, variant, category, description and an **AI estimated price**. The owner checks, edits if needed, and saves — about 15 seconds per product instead of 2 minutes. It warns about possible duplicates ("Possible Match Found · 95% match") and never saves a low-confidence result without an explicit "I have checked". See [Smart Product Recognition](#smart-product-recognition-ai).
-- **Scan to add products** (*Manage products → Scan to add products*): scan an item. An unknown barcode opens the *Add* form with the barcode filled in; a known one opens *Edit* so you can update the price or stock. After *Save* the camera comes back for the next item, so stocking a shelf is scan → type name & price → save → scan…
+**Admin mode: Manage Products**
+
+Tabs: **Products · Barcode Scanner · Search · Voice Search · Import / Export · Recognition Logs · Settings**. In admin mode, a product you find opens for editing.
+
+- **Products:** the full list with a filter, **Add from Photo** (Smart Product Recognition) and **Add by typing**.
+- **Barcode Scanner:** EAN-13, EAN-8, UPC-A/E, Code 128, Code 39, ITF and QR. Beeps and vibrates on success. Frames are decoded at camera resolution (not the on-screen size) by the phone's native `BarcodeDetector` (Android) or by **ZXing-C++ in WebAssembly** everywhere else (iPhone, Windows, Firefox), which tolerates the blur of real camera frames far better than html5-qrcode's built-in zxing-js. If the live camera struggles, **Take a photo of the barcode** reads it from a sharp photo instead, and a tip appears after 10 s. You can also type the number, or use a **USB/Bluetooth barcode gun**. An unknown barcode opens the *Add* form with the barcode filled in; a known one opens *Edit*. After *Save* the camera comes back for the next item, so stocking a shelf is scan → type name & price → save → scan…
+- **Voice Search:** Web Speech API in Vietnamese (`vi-VN`) or English. It tries every alternative the recogniser heard and ignores filler words like *"giá … bao nhiêu"*. When the match is clear, the product opens for editing; when several products tie (e.g. two brands of phi 27 pipe), only the close candidates are shown.
+- **Search:** accent-insensitive (`ong nuoc` = `Ống nước`), prefix-aware (`pan` → Panasonic…), typo-tolerant (`panasonik`), with exact number matching (`27` never returns `21`) and barcode search. A search takes about 10 ms. Pressing Enter on a clear match opens it (so a barcode gun works here too).
+- **📸 Add from Photo (Smart Product Recognition):** take a photo of a product or its box and the AI (OpenAI GPT-4o or Google Gemini) reads the packaging and fills in name, brand, model, variant, category, description and a **Suggested Price (AI Estimate)**. The owner checks, edits if needed, and saves — about 15 seconds per product instead of 2 minutes. It warns about possible duplicates ("Possible Match Found · 95% match") and never saves a low-confidence result without an explicit "I have checked". See [Smart Product Recognition](#smart-product-recognition-ai).
 - Add / edit / delete products (delete always asks for confirmation). The barcode field has its own **Scan** button and warns immediately if the code already belongs to another product.
-- **CSV bulk import** (upsert by barcode, per-row error report with spreadsheet row numbers) and **CSV export** (Excel-friendly UTF-8).
-- **Smart Recognition settings** (shop-wide): choose OpenAI or Gemini, store the API key (encrypted), pick the model from the list your key can use, add up to 3 **fallback models** tried automatically when the main one is overloaded or retired, test every model at once, and see the recognition logs.
+- **Import / Export:** CSV bulk import (upsert by barcode, per-row error report with spreadsheet row numbers) and CSV export (Excel-friendly UTF-8).
+- **Recognition Logs:** every photo analysed, with result, confidence, model, time and the fallback chain tried.
+- **Smart Recognition settings** (shop-wide): choose OpenAI or Gemini, store the API key (encrypted), pick the model from the list your key can use, add up to 3 **fallback models** tried automatically when the main one is overloaded or retired, test every model at once (*Settings → Smart Recognition*).
 - Per-device settings: store name, show/hide cost price (for screens customers can see), language, clear history.
-- Optional **admin PIN** (`ADMIN_PIN`). Price lookup always stays open.
+- Optional **admin PIN** (`ADMIN_PIN`). Customer mode (including photo lookup) always stays open.
 
 **Demo data:** 112 realistic products (PVC pipes, fittings, valves and faucets, Cadivi wires, LED lights, sockets, switches, breakers, home appliances, tools) with valid EAN-13 barcodes, shelf locations, and some low or out-of-stock items to demo.
 
@@ -137,7 +145,7 @@ All settings live in `.env` (see `.env.example`).
 | `NEXT_PUBLIC_CURRENCY` | `VND` | ISO currency code for display |
 | `NEXT_PUBLIC_NUMBER_LOCALE` | `vi-VN` | Number/currency formatting locale |
 | `NEXT_PUBLIC_LOW_STOCK_THRESHOLD` | `5` | Stock at or below this shows "Low stock" |
-| `ADMIN_PIN` | *(empty)* | If set, admin pages, all data changes and all AI calls require this PIN. Use 6+ digits. |
+| `ADMIN_PIN` | *(empty)* | If set, Manage Products, all data changes and all AI calls except photo lookup require this PIN. Use 6+ digits. |
 | `OPENAI_API_KEY` | – | Optional. Enables Smart Product Recognition with OpenAI. Overrides a key saved in Settings. |
 | `GEMINI_API_KEY` | – | Optional. Same for Google Gemini (`GOOGLE_API_KEY` also accepted). |
 | `AI_VISION_PROVIDER` | first with a key | `openai` or `gemini`, used until a provider is chosen in Settings. |
@@ -186,16 +194,22 @@ public/
   images/products/*.svg    Demo product illustrations
 src/
   app/                     Next.js routes (thin: fetch data, render a screen)
-    page.tsx               Home
-    scan/ voice/ search/   The three ways to find a product
-    product/[id]/          Product card
-    admin/                 List, new, edit, import, settings, login,
-                           detect (photo → product), ai-settings
+    page.tsx               Home (customer mode): the camera button
+    lookup/                Photo → product → price, or "New Product Detected"
+    product/[id]/          Result screen (read-only)
+    history/               Products checked lately
+    admin/                 Manage Products (admin mode). Tabs: products (page.tsx),
+                           scan/, search/, voice/, import/, logs/, settings/;
+                           plus products/new, products/[id]/edit, detect/,
+                           ai-settings/, login/
     api/                   REST route handlers (see API reference)
   components/
     ui/                    shadcn/ui primitives, enlarged for older users
-    home/ scan/ voice/ search/ product/ admin/ layout/   Feature components
-    recognition/           Detect Product: photo picker, analysing view, review form, matches
+    home/ lookup/ history/ product/   Customer mode screens
+    camera/                Camera button: opens the phone camera, hands the photo to /lookup
+    admin/ scan/ voice/ search/       Admin mode screens (admin-shell.tsx = the tabs)
+    recognition/           Photo picker, analysing view, review form, possible matches
+    layout/                Page header, navigation tracker
   hooks/                   use-product-search, use-speech-recognition
   i18n/                    Vietnamese + English dictionaries, provider
   lib/                     Pure, framework-free logic (shared client/server)
@@ -207,6 +221,7 @@ src/
   server/                  Server-only code
     services/              product-, search-, history-, recognition-,
                            ai-settings-service, image-storage
+    pricing/               Reference price sources (today: AI estimate only)
     ai/vision/             Provider abstraction + OpenAI and Gemini adapters
     ai/tasks/              AI tasks (prompt + schema), e.g. product-recognition
     ai/types.ts registry.ts  Contracts for later AI features
@@ -251,7 +266,7 @@ Prisma  →  PostgreSQL
 | `recognized_text`, `recognition_provider` | text, nullable | | |
 | `created_at`, `updated_at` | datetime | | |
 
-`SearchHistory.product_id` was added beyond the original spec so *Recent searches* can show the product's name and price and reopen it with one tap.
+`SearchHistory.product_id` was added beyond the original spec so *History* can show the product's name and price and reopen it with one tap.
 
 Smart Product Recognition adds three tables:
 
@@ -279,8 +294,8 @@ Smart Product Recognition adds three tables:
 | POST | `/api/products/import` 🔒 | CSV upload (`multipart/form-data` field `file`, or raw `text/csv` body) |
 | GET | `/api/products/export` 🔒 | All products as CSV |
 | GET | `/api/categories` | Distinct categories |
-| GET / POST / DELETE | `/api/search-history` | Recent searches / record one / clear 🔒 |
-| POST | `/api/ai/recognize` 🔒 | Photo → `RecognitionResponse` (`multipart/form-data`: `image` ≤ 4 MB JPEG/PNG/WebP, optional `thumbnail`, `barcode`) |
+| GET / POST / DELETE | `/api/search-history?limit=30&products=1` | History (`products=1`: only lookups that reached a product) / record one / clear 🔒 |
+| POST | `/api/ai/recognize` | Photo → `RecognitionResponse` (`multipart/form-data`: `image` ≤ 4 MB JPEG/PNG/WebP, optional `thumbnail`, `barcode`, `mode` = `lookup` or `create`). With `mode=lookup` the response's `outcome` is `existing` / `choose` / `new`. Open without the PIN (it is customer mode's way in) but rate-limited. |
 | POST | `/api/ai/recognitions/:id/save` 🔒 | Create a product from a reviewed recognition (product fields + `estimatedPrice`, `reviewed`) |
 | POST | `/api/ai/recognitions/:id/link` 🔒 | `{ productId }`: "it's this existing product" |
 | GET | `/api/ai/recognitions?limit=20&before=<id>` 🔒 | Recognition logs |
@@ -302,46 +317,63 @@ Every screen was checked against: *"Can a 55–70-year-old shop owner use this w
 
 - **Large everything.** Base font is 18 px; prices are 48–60 px; the smallest touch target is 56 px (the accessibility minimum is 44 px).
 - **High contrast.** Dark text on light backgrounds; white on saturated colours that meet WCAG AA.
-- **One colour per action, everywhere.** Blue = scan, green = speak, orange = type, on the home screen and on the bottom bar.
-- **No dead ends.** Every error (camera blocked, no internet, not found) says what happened in plain words and offers a big next step (*Scan again*, *Speak again*, *Type instead*, *Add this product*).
-- **Zero confirmation steps for lookups.** A scan or a clear voice match opens the product directly. Only *deleting* asks "Are you sure?".
+- **One main action.** The home screen does one thing: photo → product → price. Everything administrative is in Manage Products, so customer mode has nothing to tap by mistake.
+- **One colour per action.** Blue = the customer camera, purple = AI adding a product (admin).
+- **No dead ends.** Every error (camera blocked, no internet, no product in the photo, AI busy) says what happened in plain words and offers a big next step, usually **Retake Photo**, which opens the camera straight away.
+- **Zero confirmation steps for lookups.** A barcode in the photo or a match above 90 % opens the product directly. Only *deleting* asks "Are you sure?".
 - **Labelled buttons.** Icons always come with words (*← Back*, not just ←), and stock status uses colour + icon + text (safe for colour-blind users).
-- **Shallow navigation.** Every screen is at most one level deep, the on-screen Back always works, and the phone's Back button behaves as expected (scan/voice results *replace* the history entry).
+- **Shallow navigation.** Every screen is at most one level deep, the on-screen Back always works, and the phone's Back button behaves as expected (the lookup screen *replaces* itself with the result, so Back goes home).
 - **Zoom allowed**, reduced-motion respected, visible focus ring for keyboard users.
 
 ---
 
 ## Smart Product Recognition (AI)
 
-The owner takes a photo; the AI identifies the product; the owner checks and saves. No typing for most products.
+The same recognition powers both modes:
+
+- **Customer mode** (home → **Chụp sản phẩm**): look up a product the shop already has, or add it when it is new.
+- **Admin mode** (Manage Products → Products → **Add from Photo**): stock the shelves quickly, photo after photo.
 
 ### Setting it up (5 minutes)
 
 1. Get an API key from **one** provider:
    - **OpenAI** (GPT-4o): <https://platform.openai.com/api-keys>. Needs a paid account with credit.
    - **Google Gemini**: <https://aistudio.google.com/apikey>. Has a free tier with per-minute limits.
-2. Either put it in the server environment (`OPENAI_API_KEY` or `GEMINI_API_KEY`, then redeploy), **or** open **Manage products → Smart Recognition settings**, pick the provider, paste the key and tap **Save**.
+2. Either put it in the server environment (`OPENAI_API_KEY` or `GEMINI_API_KEY`, then redeploy), **or** open **Manage Products → Settings → Smart Recognition (AI)**, pick the provider, paste the key and tap **Save**.
 3. Tap **Test all models** there. "Main: Gemini · gemini-3.8-flash works (2.1 s)" means you're done.
 4. Recommended: under **Fallback models**, tap **Add fallback model** and pick a lighter model (tap **Load model list** to see the exact names your key can use, e.g. a `flash-lite` one). When the main model is overloaded ("high demand") or retired, the app switches to it on its own.
-5. Set `ADMIN_PIN` if the site is reachable from the internet: every AI call costs money and only unlocked devices can make them.
+5. Set `ADMIN_PIN` if the site is reachable from the internet. Photo lookup stays open (it is the customer's way in) but is rate-limited; saving products, logs and AI settings need the PIN.
 
 **Cost:** one photo is roughly 1,500 input + 300 output tokens. At GPT-4o's list price when this was written that is under **1 US cent per photo**; Gemini Flash is several times cheaper. Prices change, so check the provider's pricing page.
 
-### How the owner uses it
+### Customer mode: photo → price
 
-**Manage products → 📸 Detect Product**
+1. Home → **📸 Chụp sản phẩm** opens the phone camera.
+2. The phone downscales the photo and reads any barcode in it. A known barcode opens the product right away, with no AI call.
+3. Otherwise the AI recognises the product (*Analyzing product…*, usually 3–8 s) and the server ranks catalogue matches (`decideLookup` in `src/lib/recognition/matching.ts`):
+   - **exactly one match above 90 %** (or the same barcode) → the result screen opens. No editing, no confirmation;
+   - **several above 90 %** → *"Which product is it?"*, one tap each;
+   - **none** → **New Product Detected**, a pre-filled form (see below) with **Save Product** / **Retake Photo**. Similar products (60–90 %) are offered on top as *"Is it one of these?"*;
+   - a photo with no product in it → *"No product could be seen in this photo"* + **Retake Photo**.
+4. After saving, the new product's result screen opens.
+
+Lookups that open a product are logged as *Matched existing* in Recognition Logs and appear in History.
+
+### Admin mode: Add from Photo
+
+**Manage Products → Products → 📸 Add from Photo**
 
 1. **Take Photo** opens the phone's own camera app (best focus and exposure for small print), or **Choose from Gallery**.
 2. *Analyzing product…* with a progress bar, usually 3–8 seconds.
-3. The result screen shows the photo, a **confidence meter**, and every field pre-filled and editable: name, brand, model, variant, category (tap a suggested category chip; new ones are marked *new*), **AI Estimated Price**, **Store Selling Price** (starts equal to the estimate), stock, barcode and description, plus detected keywords and the text read from the package.
+3. The result screen shows the photo, a **confidence meter**, and every field pre-filled and editable: name, brand, model, variant, category (tap a suggested category chip; new ones are marked *new*), **Suggested Price (AI Estimate)**, **Store Selling Price** (starts equal to the suggestion), stock, shelf location, barcode and description, plus detected keywords and the text read from the package.
 4. **Possible Match Found**: if the product may already exist ("Ổ cắm đôi Panasonic A12 · 95% match · Same model"), one tap on **Use this product** opens that product to update its price or stock instead of creating a duplicate. If that product had no picture, the photo becomes its picture.
 5. **Save Product**, and the camera screen comes straight back for the next item.
 
 Below **70 % confidence** a warning says *"We are not fully confident about this recognition"*, and Save only works after ticking **I have checked the details**. The server enforces this too. Nothing is ever saved without the owner tapping Save.
 
-It also plugs into **Scan to add products**: an unknown barcode's *Add* form offers **Fill in from a photo**, which keeps the scanned barcode and returns to the scanner after saving.
+It also plugs into the **Barcode Scanner** tab: an unknown barcode's *Add* form offers **Fill in from a photo**, which keeps the scanned barcode and returns to the scanner after saving.
 
-> **The price is an AI estimate, not a market price.** It is labelled *AI Estimated Price* everywhere, comes from the model's general knowledge of the product type, brand and specs in your market (derived from `NEXT_PUBLIC_NUMBER_LOCALE`, e.g. Vietnam) and is rounded to a shop-style price (VND: nearest 1,000). There is no web lookup in this version.
+> **The price is an AI suggestion, not a market price.** It is labelled *Suggested Price (AI Estimate)* / *Giá gợi ý (AI ước tính)* everywhere, with a note that it is only a recommendation, comes from the model's general knowledge of the product type, brand and specs in your market (derived from `NEXT_PUBLIC_NUMBER_LOCALE`, e.g. Vietnam) and is rounded to a shop-style price (VND: nearest 1,000). There is no web lookup in this version (see *Future price sources* below).
 
 ### When a model is overloaded or retired: fallback models
 
@@ -363,14 +395,18 @@ Phone                         Server                                    AI provi
 photo (3–12 MB)
  → downscale to 1600 px JPEG
  → 480 px thumbnail
- → read barcode (ZXing)  ──▶  POST /api/ai/recognize
+ → read barcode (ZXing)
+   known barcode? → open product (no AI)
+                         ──▶  POST /api/ai/recognize (mode=lookup|create)
                               ├─ store thumbnail (StoredImage)
                               ├─ product-recognition task:
                               │   prompt + JSON schema + shop's categories ──▶ OpenAI / Gemini
                               │   validate + normalise answer          ◀──
                               ├─ match against catalogue (fuzzy search + scoring)
+                              ├─ price suggestions (src/server/pricing)
+                              ├─ lookup mode: decide existing / choose / new
                               └─ write ProductRecognitionHistory
-review screen            ◀──  { result, matches, confidence, … }
+result or review screen  ◀──  { result, matches, outcome, priceSuggestions, … }
 Save ───────────────────────▶ POST /api/ai/recognitions/:id/save → Product
 ```
 
@@ -392,6 +428,7 @@ The AI code knows nothing about the UI and the UI knows nothing about providers:
 | Factory | `src/server/ai/vision/factory.ts` + `services/ai-settings-service.ts` | Which provider/key/model is configured |
 | Task | `src/server/ai/tasks/product-recognition.ts` | Prompt, output schema, clean-up of the answer |
 | Workflow | `src/server/services/recognition-service.ts` | Images, matching, history, save/link |
+| Price sources | `src/server/pricing/*` | Where reference prices come from |
 | API | `src/app/api/ai/**` | HTTP in/out |
 | UI | `src/components/recognition/*` | Screens only, via `lib/api-client.ts` |
 
@@ -404,8 +441,24 @@ The AI code knows nothing about the UI and the UI knows nothing about providers:
 - Keys set as **environment variables always win** and are shown in Settings as "set on the server" (masked).
 - Keys saved from **Settings** are encrypted with AES-256-GCM before they reach the database. The encryption key comes from `SETTINGS_SECRET`; without it, from `DATABASE_URL`, so a leaked database dump alone can't reveal them. Set `SETTINGS_SECRET` in production. If you change it, saved keys stop working and need re-entering (nothing else breaks).
 - Keys are **write-only**: the API never returns them, only a hint like `sk-…a1b2`.
-- All `/api/ai/*` routes need the admin PIN (when set) and are rate-limited (20 photos/minute per client per server instance) as a safety net against cost spikes.
+- `/api/ai/recognize` is open (customer mode) and rate-limited to 20 photos/minute per client per server instance as a safety net against cost spikes. Every other `/api/ai/*` route (save, link, logs, settings) needs the admin PIN when one is set.
 - Photos go to the chosen AI provider for analysis. OpenAI does not train on API data by default; Gemini's **free tier may use inputs to improve Google products** (the paid tier does not). Check each provider's current terms if photos could show anything private.
+
+### Future price sources
+
+Today the only reference price is the AI's suggestion. The architecture is ready for more, without changing the UI:
+
+```
+src/server/pricing/
+  types.ts         PriceSource { id, isEnabled(), suggest(product) → PriceSuggestionDTO[] }
+  ai-estimate.ts   the vision model's own guess (kind: "ai")
+  index.ts         collectPriceSuggestions(): runs every enabled source in parallel,
+                   3 s timeout each; a failing source is dropped and never blocks a lookup
+```
+
+`PriceSuggestionDTO` carries `source` (`ai_estimate` · `ecommerce` · `supplier` · `competitor`), `amount`, `kind` (`ai` guess vs `observed` price), `sourceName`, `url` and `observedAt`. The review screen shows the AI suggestion as an editable field and any other source as read-only reference lines under it. A suggestion is **never applied** automatically: the store selling price is always the owner's.
+
+To add one, implement `PriceSource` (e.g. a marketplace's official API, the shop's supplier price lists, or prices the owner records for nearby shops), add it to `SOURCES` in `pricing/index.ts`, and label it in `price.source.*` in the dictionaries. **Web scraping is deliberately out of scope**: use official APIs or data the shop owns.
 
 ### Other AI interfaces
 
@@ -468,7 +521,7 @@ npm start                # port 3000; set PORT=… to change
 | Voice search not available | Use Google Chrome (Android/desktop) or Safari (iOS 14.5+). Firefox has no Web Speech recognition. |
 | Every page shows "Có lỗi xảy ra" / "Something went wrong" after deploying | The app can't reach the database. Check that `DATABASE_URL` is set in Vercel → Settings → Environment Variables, then redeploy. The function logs (Vercel → Logs) show the exact error. |
 | `prepared statement "s0" already exists` | Your connection goes through a pooler that doesn't support prepared statements (or it's `npm run db:local`). Add `&pgbouncer=true` to `DATABASE_URL` (not to the unpooled one). |
-| *Detect Product* says "not set up" | Add a key in **Manage products → Smart Recognition settings** (or `OPENAI_API_KEY` / `GEMINI_API_KEY` on the server, then redeploy) and tap **Test**. |
+| Taking a photo says "Smart Recognition is not set up" | Add a key in **Manage Products → Settings → Smart Recognition (AI)** (or `OPENAI_API_KEY` / `GEMINI_API_KEY` on the server, then redeploy) and tap **Test**. |
 | AI test fails with "did not accept the API key" / "run out of credit" | Check the key at the provider; OpenAI needs prepaid credit on the account. |
 | Saved API key "disappeared" after a redeploy | `SETTINGS_SECRET` (or, without it, `DATABASE_URL`) changed, so the saved key can't be decrypted. Re-enter it, or move it to an environment variable. |
 | "This model is currently experiencing high demand" | The provider's servers are overloaded (not your key or your usage; free tiers are served last). Add a fallback model in Settings, or wait a few minutes. |

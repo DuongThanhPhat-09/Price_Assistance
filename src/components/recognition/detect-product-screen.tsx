@@ -9,12 +9,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { api, ApiRequestError } from "@/lib/api-client";
 import { successFeedback } from "@/lib/feedback";
-import { preloadPhotoTools, preparePhoto, UnsupportedPhotoError } from "@/lib/photo";
+import { preloadPhotoTools, preparePhoto } from "@/lib/photo";
 import type { ProductDTO, RecognitionResponse } from "@/lib/types";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { useI18n } from "@/i18n/i18n-provider";
 import { AnalyzingView, type AnalyzePhase } from "./analyzing-view";
 import { PhotoPicker } from "./photo-picker";
+import { needsSettings, recognitionErrorMessage } from "./recognition-errors";
 import { RecognitionReview } from "./recognition-review";
 
 type Step =
@@ -22,33 +23,6 @@ type Step =
   | { name: "analyzing"; phase: AnalyzePhase }
   | { name: "review"; data: RecognitionResponse }
   | { name: "error"; message: MessageKey; settingsLink: boolean };
-
-const SETTINGS_CODES = new Set(["not_configured", "auth", "model"]);
-
-function errorMessage(e: unknown): MessageKey {
-  if (e instanceof UnsupportedPhotoError) return "detect.error.bad_image";
-  if (!(e instanceof ApiRequestError)) return typeof navigator !== "undefined" && !navigator.onLine ? "common.offline" : "common.error";
-  switch (e.code) {
-    case "not_configured":
-    case "auth":
-    case "quota":
-    case "rate_limit":
-    case "model":
-      return `detect.error.${e.code}`;
-    case "timeout":
-    case "unavailable":
-      return "detect.error.busy";
-    case "refused":
-    case "invalid_response":
-    case "bad_request":
-      return "detect.error.unreadable";
-    case "bad_image":
-    case "too_large":
-      return "detect.error.bad_image";
-    default:
-      return "common.error";
-  }
-}
 
 /**
  * Smart Product Recognition: photo → AI → review → save, then straight
@@ -109,12 +83,7 @@ export function DetectProductScreen({ initialBarcode, fromScan }: { initialBarco
         router.push(`/admin/login?next=${encodeURIComponent("/admin/detect")}`);
         return;
       }
-      const message = errorMessage(e);
-      setStep({
-        name: "error",
-        message,
-        settingsLink: e instanceof ApiRequestError && SETTINGS_CODES.has(e.code ?? ""),
-      });
+      setStep({ name: "error", message: recognitionErrorMessage(e), settingsLink: needsSettings(e) });
     }
   };
 

@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   // without clobbering the one `npm run dev` is using.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  // Search, voice and barcode lookup moved into Manage Products; keep old
+  // bookmarks and home-screen shortcuts working.
+  async redirects() {
+    return [
+      { source: "/scan", destination: "/admin/scan", permanent: false },
+      { source: "/search", destination: "/admin/search", permanent: false },
+      { source: "/voice", destination: "/admin/voice", permanent: false },
+    ];
+  },
   // Camera + microphone are needed on our own origin only.
   async headers() {
     return [

@@ -1,76 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { Languages, Mic, ScanBarcode, Search, Settings, Store } from "lucide-react";
+import { Camera, History, PackageSearch } from "lucide-react";
+import { CameraLookupButton } from "@/components/camera/camera-button";
 import { useI18n } from "@/i18n/i18n-provider";
-import { useSettingsStore } from "@/store/settings-store";
-import { Button } from "@/components/ui/button";
-import { ActionCard } from "./action-card";
-import { RecentSearches } from "./recent-searches";
 
+/**
+ * Customer mode. One job: photo → product → price. The camera button is
+ * the whole screen; History and Manage Products are the only other ways out.
+ */
 export function HomeScreen() {
-  const { t, locale, setLocale } = useI18n();
-  const storeName = useSettingsStore((s) => s.storeName);
+  const { t } = useI18n();
 
   return (
-    <main className="mx-auto min-h-dvh max-w-3xl px-4 pb-10 pt-5">
-      {/* Top: store name + one-tap language switch */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Store className="size-7" aria-hidden />
-          </span>
-          <p className="line-clamp-2 text-xl font-bold leading-tight" suppressHydrationWarning>
-            {storeName}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          className="h-12 shrink-0 px-4 text-base"
-          onClick={() => setLocale(locale === "vi" ? "en" : "vi")}
+    <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-4 sm:justify-center pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
+      {/* For screen readers only: the camera button says it all. */}
+      <h1 className="sr-only">{t("home.title")}</h1>
+
+      {/* The one main action — fills the free space on any phone. */}
+      <CameraLookupButton className="flex min-h-64 w-full flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-action-camera px-6 py-8 text-white shadow-xl ring-4 ring-action-camera/25 transition-transform active:scale-[0.98] sm:max-h-[26rem]">
+        <span className="flex size-32 items-center justify-center rounded-full bg-white/20">
+          <Camera className="size-20" strokeWidth={2.25} aria-hidden />
+        </span>
+        <span className="text-[2.5rem] font-black leading-none">{t("home.camera")}</span>
+      </CameraLookupButton>
+
+      <nav aria-label={t("home.more")} className="mt-5 grid grid-cols-2 gap-3">
+        <Link
+          href="/history"
+          className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-border bg-card px-2 py-3 text-center text-xl font-bold leading-tight shadow-sm hover:border-primary active:bg-accent"
         >
-          <Languages className="size-5" aria-hidden />
-          {t("common.language")}
-        </Button>
-      </header>
-
-      <h1 className="mt-8 text-[2rem] font-extrabold leading-tight tracking-tight sm:text-4xl">{t("home.title")}</h1>
-
-      {/* Three giant actions */}
-      <nav aria-label={t("home.title")} className="mt-6 grid gap-4 md:grid-cols-3">
-        <ActionCard
-          href="/scan"
-          icon={ScanBarcode}
-          label={t("home.scan")}
-          hint={t("home.scanHint")}
-          className="bg-action-scan"
-        />
-        <ActionCard
-          href="/voice"
-          icon={Mic}
-          label={t("home.voice")}
-          hint={t("home.voiceHint")}
-          className="bg-action-voice"
-        />
-        <ActionCard
-          href="/search"
-          icon={Search}
-          label={t("home.search")}
-          hint={t("home.searchHint")}
-          className="bg-action-search"
-        />
+          <History className="size-9 text-primary" aria-hidden />
+          {t("home.history")}
+        </Link>
+        <Link
+          href="/admin"
+          className="flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-border bg-card px-2 py-3 text-center text-xl font-bold leading-tight shadow-sm hover:border-primary active:bg-accent"
+        >
+          <PackageSearch className="size-9 text-primary" aria-hidden />
+          {t("home.manage")}
+        </Link>
       </nav>
-
-      <RecentSearches />
-
-      <footer className="mt-12 flex justify-center">
-        <Button asChild variant="ghost" className="text-muted-foreground">
-          <Link href="/admin">
-            <Settings aria-hidden />
-            {t("home.manage")}
-          </Link>
-        </Button>
-      </footer>
     </main>
   );
 }
