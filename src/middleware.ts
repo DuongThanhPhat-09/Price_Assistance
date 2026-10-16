@@ -3,8 +3,9 @@ import { adminToken, getAdminPin, safeEqual } from "@/lib/admin-auth";
 import { ADMIN_COOKIE } from "@/lib/config";
 
 /**
- * When ADMIN_PIN is set, the admin pages and every data-changing API call
- * require the admin cookie. Looking up prices never requires a PIN.
+ * When ADMIN_PIN is set, the admin pages, every data-changing API call and
+ * every AI call require the admin cookie. Looking up prices never requires
+ * a PIN.
  */
 function needsAdmin(req: NextRequest): boolean {
   const { pathname } = req.nextUrl;
@@ -14,6 +15,8 @@ function needsAdmin(req: NextRequest): boolean {
   if (pathname === "/api/products/export") return true;
   if (pathname.startsWith("/api/products")) return method !== "GET";
   if (pathname === "/api/search-history") return method === "DELETE";
+  // AI calls cost money and the settings hold API keys.
+  if (pathname.startsWith("/api/ai/")) return true;
   return false;
 }
 
@@ -34,5 +37,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/products/:path*", "/api/search-history"],
+  matcher: ["/admin/:path*", "/api/products/:path*", "/api/search-history", "/api/ai/:path*"],
 };

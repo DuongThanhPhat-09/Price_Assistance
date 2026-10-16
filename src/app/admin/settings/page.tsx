@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { History, Lock } from "lucide-react";
+import Link from "next/link";
+import { History, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,12 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid gap-3 border-t-2 border-border pt-8">
+          <Button asChild variant="outline">
+            <Link href="/admin/ai-settings">
+              <Sparkles aria-hidden />
+              {t("settings.aiSettings")}
+            </Link>
+          </Button>
           <Button variant="outline" onClick={clearHistory}>
             <History aria-hidden />
             {t("settings.clearHistory")}

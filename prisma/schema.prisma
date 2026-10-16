@@ -27,20 +27,80 @@ model Product {
   stockQuantity Int      @default(0) @map("stock_quantity")
   shelfLocation String?  @map("shelf_location")
   imageUrl      String?  @map("image_url")
+  // Brand / model number / variant ("White, 16A") are ordinary product
+  // fields: shown on the product card, searchable, editable, in the CSV.
+  brand         String?
+  model         String?
+  variant       String?
+  // Filled when the product was created by Smart Product Recognition.
+  aiConfidence        Float?  @map("ai_confidence") // 0..1
+  aiEstimatedPrice    Int?    @map("ai_estimated_price") // minor units — an AI estimate, NOT a real market price
+  recognizedText      String? @map("recognized_text") // text read from the packaging
+  recognitionProvider String? @map("recognition_provider") // "openai" | "gemini"
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   searchHistory SearchHistory[]
+  recognitions  ProductRecognitionHistory[]
 
   @@index([category])
   @@index([name])
   @@map("products")
 }
 
+// One row per photo analysed by Smart Product Recognition, whether or not
+// it became a product. Doubles as the admin "Recognition logs".
+model ProductRecognitionHistory {
+  id             Int      @id @default(autoincrement())
+  // Product created from (or matched to) this photo.
+  productId      Int?     @map("product_id")
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  imageUrl       String?  @map("image_url")
+  recognizedName String?  @map("recognized_name")
+  confidence     Float? // 0..1
+  provider       String // "openai" | "gemini"
+  aiModel        String?  @map("ai_model")
+  // "recognized" | "failed" | "saving" | "created" | "linked"
+  status         String
+  // Normalised AI output exactly as first returned, for auditing.
+  result         Json?
+  error          String?
+  durationMs     Int?     @map("duration_ms")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([productId])
+  @@map("product_recognition_history")
+}
+
+// Uploaded photos (downscaled on the phone first, so ~30–80 KB each).
+// Kept in the database because serverless hosts have no permanent disk;
+// served by /api/images/:id. Swap src/server/services/image-storage.ts
+// for S3 / Vercel Blob if the shop stores many thousands of photos.
+model StoredImage {
+  id        String   @id @default(cuid())
+  mimeType  String   @map("mime_type")
+  data      Bytes
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("stored_images")
+}
+
+// Shop-wide settings edited from the admin portal (e.g. the AI provider).
+// Secrets in `value` are encrypted — see src/server/secret-box.ts.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
 model SearchHistory {
   id         Int      @id @default(autoincrement())
   keyword    String
-  // "text" | "voice" | "barcode" | "image" (phase 2)
+  // "text" | "voice" | "barcode" | "image"
   searchType String   @map("search_type")
   // Product the user ended up opening, if any. Lets "Recent searches"
   // show the product name + price and reopen it with one tap.

@@ -140,3 +140,20 @@ export function ensureBarcodeDetector(): Promise<void> {
   })();
   return ready;
 }
+
+/**
+ * Reads a retail barcode (EAN/UPC) from a still image, or null. Never
+ * throws: a photo without a barcode is the normal case.
+ */
+export async function detectRetailBarcode(source: CanvasImageSource): Promise<string | null> {
+  try {
+    await ensureBarcodeDetector();
+    const Detector = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => ZXingBarcodeDetector })
+      .BarcodeDetector;
+    if (!Detector) return null;
+    const results = await new Detector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] }).detect(source);
+    return results[0]?.rawValue ?? null;
+  } catch {
+    return null;
+  }
+}

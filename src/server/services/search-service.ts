@@ -41,6 +41,9 @@ async function getIndex(): Promise<IndexedDoc<Product>[]> {
         barcode: p.barcode,
         description: p.description,
         shelfLocation: p.shelfLocation,
+        brand: p.brand,
+        model: p.model,
+        variant: p.variant,
       }));
       state.__paIndex = { docs, builtAt: Date.now() };
       return docs;

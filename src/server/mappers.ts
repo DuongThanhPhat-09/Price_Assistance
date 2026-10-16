@@ -1,5 +1,5 @@
 import type { Product } from "@prisma/client";
-import type { ProductDTO } from "@/lib/types";
+import type { ProductDTO, VisionProviderId } from "@/lib/types";
 
 export function toProductDTO(p: Product): ProductDTO {
   return {
@@ -13,6 +13,13 @@ export function toProductDTO(p: Product): ProductDTO {
     stockQuantity: p.stockQuantity,
     shelfLocation: p.shelfLocation,
     imageUrl: p.imageUrl,
+    brand: p.brand,
+    model: p.model,
+    variant: p.variant,
+    aiConfidence: p.aiConfidence,
+    aiEstimatedPrice: p.aiEstimatedPrice,
+    recognizedText: p.recognizedText,
+    recognitionProvider: p.recognitionProvider as VisionProviderId | null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };

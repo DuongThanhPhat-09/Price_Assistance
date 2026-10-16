@@ -52,6 +52,12 @@ describe("CSV import", () => {
     expect(rows[0].input).toMatchObject({ costPrice: 4000, stockQuantity: 7 });
   });
 
+  it("leaves brand/model untouched when the file has no such columns", () => {
+    const { rows } = parseProductCsv("name,price\nX,5000\n");
+    expect(rows[0].input.brand).toBeUndefined();
+    expect(rows[0].input.model).toBeUndefined();
+  });
+
   it("rejects a file without required headers", () => {
     const { rows, failed } = parseProductCsv("foo,bar\n1,2\n");
     expect(rows).toHaveLength(0);
@@ -71,12 +77,26 @@ describe("CSV import", () => {
         stockQuantity: 12,
         shelfLocation: "A1-02",
         imageUrl: null,
+        brand: "Bình Minh",
+        model: "PVC-27",
+        variant: null,
+        aiConfidence: null,
+        aiEstimatedPrice: null,
+        recognizedText: null,
+        recognitionProvider: null,
         createdAt: "",
         updatedAt: "",
       },
     ]);
     const { rows, failed } = parseProductCsv(csv);
     expect(failed).toEqual([]);
-    expect(rows[0].input).toMatchObject({ name: 'Ống "đặc biệt", phi 27', price: 45000, costPrice: 33000 });
+    expect(rows[0].input).toMatchObject({
+      name: 'Ống "đặc biệt", phi 27',
+      price: 45000,
+      costPrice: 33000,
+      brand: "Bình Minh",
+      model: "PVC-27",
+      variant: null,
+    });
   });
 });

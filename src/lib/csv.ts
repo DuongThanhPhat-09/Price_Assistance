@@ -71,6 +71,9 @@ export function productsToCsv(products: ProductDTO[]): string {
       p.stockQuantity,
       p.shelfLocation ?? "",
       p.imageUrl ?? "",
+      p.brand ?? "",
+      p.model ?? "",
+      p.variant ?? "",
     ]),
   });
 }

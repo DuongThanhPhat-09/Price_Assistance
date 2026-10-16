@@ -19,6 +19,10 @@ export interface SearchableFields {
   barcode?: string | null;
   description?: string | null;
   shelfLocation?: string | null;
+  brand?: string | null;
+  /** Model / part number, e.g. "WEG6801". */
+  model?: string | null;
+  variant?: string | null;
 }
 
 interface IndexedField {
@@ -44,6 +48,9 @@ const FIELD_WEIGHTS = {
   category: 1.5,
   shelfLocation: 1,
   description: 0.6,
+  brand: 2,
+  model: 2.5,
+  variant: 1,
 } as const;
 
 export function buildIndex<T>(items: T[], pick: (item: T) => SearchableFields): IndexedDoc<T>[] {
@@ -54,6 +61,9 @@ export function buildIndex<T>(items: T[], pick: (item: T) => SearchableFields): 
       { tokens: tokenize(f.category ?? ""), weight: FIELD_WEIGHTS.category },
       { tokens: tokenize(f.shelfLocation ?? ""), weight: FIELD_WEIGHTS.shelfLocation },
       { tokens: tokenize(f.description ?? ""), weight: FIELD_WEIGHTS.description },
+      { tokens: tokenize(f.brand ?? ""), weight: FIELD_WEIGHTS.brand },
+      { tokens: tokenize(f.model ?? ""), weight: FIELD_WEIGHTS.model },
+      { tokens: tokenize(f.variant ?? ""), weight: FIELD_WEIGHTS.variant },
     ].filter((x) => x.tokens.length > 0);
     return {
       item,

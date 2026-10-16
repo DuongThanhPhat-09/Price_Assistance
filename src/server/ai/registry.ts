@@ -1,21 +1,19 @@
 import "server-only";
 import {
   AIFeatureUnavailableError,
-  type ImageRecognitionProvider,
   type InventoryForecaster,
   type NaturalLanguageQueryParser,
-  type ProductRecognitionService,
   type SalesAssistant,
 } from "./types";
 
 /**
- * Single place where AI providers are chosen. Today every slot is empty;
- * to add one, implement the interface in ./providers/<name>.ts and return
- * it here (e.g. based on process.env.AI_PROVIDER).
+ * Single place where the later-phase AI providers are chosen. Every slot
+ * is empty today; to add one, implement the interface and return it here.
+ *
+ * Vision (photo) features are configured from the admin portal instead —
+ * see ./vision/factory.ts and services/ai-settings-service.ts.
  */
 export interface AIProviders {
-  imageRecognition: ImageRecognitionProvider | null;
-  productRecognition: ProductRecognitionService | null;
   salesAssistant: SalesAssistant | null;
   forecaster: InventoryForecaster | null;
   nlQuery: NaturalLanguageQueryParser | null;
@@ -26,8 +24,6 @@ let providers: AIProviders | null = null;
 export function getAIProviders(): AIProviders {
   if (!providers) {
     providers = {
-      imageRecognition: null,
-      productRecognition: null,
       salesAssistant: null,
       forecaster: null,
       nlQuery: null,
@@ -40,14 +36,4 @@ export function requireAI<K extends keyof AIProviders>(key: K): NonNullable<AIPr
   const p = getAIProviders()[key];
   if (!p) throw new AIFeatureUnavailableError(key);
   return p as NonNullable<AIProviders[K]>;
-}
-
-export function aiFeatureFlags() {
-  const p = getAIProviders();
-  return {
-    imageRecognition: !!p.productRecognition,
-    salesAssistant: !!p.salesAssistant,
-    forecasting: !!p.forecaster,
-    naturalLanguageQuery: !!p.nlQuery,
-  };
 }

@@ -34,6 +34,8 @@
   --action-scan: #1d4ed8;
   --action-voice: #047857;
   --action-search: #b45309;
+  /* Smart Product Recognition (admin) */
+  --action-detect: #6d28d9;
 
   --price: #b91c1c;
   --success: #047857;
@@ -63,6 +65,7 @@
   --color-action-scan: var(--action-scan);
   --color-action-voice: var(--action-voice);
   --color-action-search: var(--action-search);
+  --color-action-detect: var(--action-detect);
   --color-price: var(--price);
   --color-success: var(--success);
   --color-warning: var(--warning);

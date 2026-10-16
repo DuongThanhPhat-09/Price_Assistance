@@ -56,9 +56,15 @@ export async function listCategories(): Promise<string[]> {
   return rows.map((r) => r.category);
 }
 
-export async function createProduct(input: ProductInput): Promise<ProductDTO> {
+/** Set only by Smart Product Recognition, never by the normal product form. */
+export type AIProductFields = Pick<
+  Prisma.ProductCreateInput,
+  "aiConfidence" | "aiEstimatedPrice" | "recognizedText" | "recognitionProvider"
+>;
+
+export async function createProduct(input: ProductInput, ai?: AIProductFields): Promise<ProductDTO> {
   try {
-    const p = await prisma.product.create({ data: input });
+    const p = await prisma.product.create({ data: { ...input, ...ai } });
     invalidateSearchIndex();
     return toProductDTO(p);
   } catch (e) {

@@ -9,6 +9,18 @@ const optionalText = (max: number) =>
     .pipe(z.string().max(max))
     .transform((v) => (v === "" ? null : v));
 
+/**
+ * Like optionalText, but a missing field stays `undefined` ("leave as is")
+ * instead of becoming null. Used for fields added later, so a CSV without
+ * that column — or an older client — never wipes existing values.
+ */
+const keepableText = (max: number) =>
+  z
+    .union([z.string(), z.null(), z.undefined()])
+    .transform((v) => (typeof v === "string" ? v.trim() : v))
+    .pipe(z.union([z.string().max(max), z.null(), z.undefined()]))
+    .transform((v) => (v === "" ? null : v));
+
 const imageUrl = optionalText(1000).refine(
   (v) => v === null || v.startsWith("/") || /^https?:\/\//i.test(v) || v.startsWith("data:image/"),
   { message: "Image must be a web address (https://…) or a path starting with /" },
@@ -25,9 +37,14 @@ export const productInputSchema = z.object({
   stockQuantity: z.number().int().min(0),
   shelfLocation: optionalText(50),
   imageUrl,
+  brand: keepableText(100),
+  model: keepableText(100),
+  variant: keepableText(100),
 });
 
 export type ProductInput = z.infer<typeof productInputSchema>;
+/** What the client sends (before trimming / defaults). */
+export type ProductInputPayload = z.input<typeof productInputSchema>;
 
 const amountField = (label: string, required: boolean) =>
   z
@@ -74,6 +91,9 @@ export const csvRowSchema = z
     stock_quantity: intField("stock_quantity"),
     shelf_location: z.string().optional(),
     image_url: z.string().optional(),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    variant: z.string().optional(),
   })
   .transform((r) => ({
     barcode: r.barcode,
@@ -85,6 +105,9 @@ export const csvRowSchema = z
     stockQuantity: r.stock_quantity,
     shelfLocation: r.shelf_location,
     imageUrl: r.image_url,
+    brand: r.brand,
+    model: r.model,
+    variant: r.variant,
   }))
   .pipe(productInputSchema);
 
@@ -98,6 +121,9 @@ export const CSV_COLUMNS = [
   "stock_quantity",
   "shelf_location",
   "image_url",
+  "brand",
+  "model",
+  "variant",
 ] as const;
 
 export const searchHistoryInputSchema = z.object({
@@ -105,6 +131,44 @@ export const searchHistoryInputSchema = z.object({
   searchType: z.enum(["text", "voice", "barcode", "image"]),
   productId: z.number().int().positive().nullable().optional(),
 });
+
+/** Saving a product from a recognised photo. */
+export const recognitionSaveSchema = productInputSchema.extend({
+  /** Owner-confirmed estimated market price (minor units); null = none. */
+  estimatedPrice: z.number().int().min(0).nullable().optional(),
+  /** Owner ticked "I checked these details" — required for low confidence. */
+  reviewed: z.boolean().optional().default(false),
+});
+
+export const recognitionLinkSchema = z.object({
+  productId: z.number().int().positive(),
+});
+
+const modelName = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((v) => (typeof v === "string" ? v.trim() : ""))
+  .pipe(z.string().max(100).regex(/^[\w.:\-/]*$/, "Model name can only contain letters, numbers and . : - / _"))
+  .transform((v) => v || null);
+
+/**
+ * API key change: omitted = keep, "" or null = remove the saved key,
+ * a string = save this key.
+ */
+const apiKeyChange = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((v) => (typeof v === "string" ? v.trim() : v))
+  .pipe(z.union([z.string().max(500), z.null(), z.undefined()]));
+
+export const aiSettingsInputSchema = z.object({
+  provider: z.enum(["openai", "gemini"]),
+  openaiModel: modelName,
+  geminiModel: modelName,
+  openaiApiKey: apiKeyChange,
+  geminiApiKey: apiKeyChange,
+});
+
+export type AISettingsInput = z.infer<typeof aiSettingsInputSchema>;
+export type AISettingsPayload = z.input<typeof aiSettingsInputSchema>;
 
 export function formatZodError(error: z.ZodError): string {
   return error.issues
