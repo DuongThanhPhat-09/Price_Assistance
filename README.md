@@ -69,7 +69,7 @@ Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadc
 npm install
 
 # 2. Create your settings file, then put your database URL in
-#    DATABASE_URL and DATABASE_URL_UNPOOLED (see .env.example)
+#    DATABASE_URL (see .env.example)
 cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 
 # 3. Create the tables and load the 112 demo products
@@ -125,8 +125,9 @@ All settings live in `.env` (see `.env.example`).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | – | PostgreSQL connection used by the app (pooled is fine) |
-| `DATABASE_URL_UNPOOLED` | – | Direct PostgreSQL connection used by migrations |
+| `DATABASE_URL` | – | **Required.** PostgreSQL connection used by the app (pooled is fine) |
+| `DATABASE_URL_UNPOOLED` or `POSTGRES_URL_NON_POOLING` | – | Optional direct connection used for migrations on deploy (falls back to `DATABASE_URL`). Neon/Supabase integrations set one automatically. |
+| `ADMIN_PIN` | – | Not created automatically: add it yourself (see Deploying). |
 | `SEED_DEMO_DATA` | `true` | On deploy, add the demo products if the database is empty. Set `false` to stop. |
 | `NEXT_PUBLIC_STORE_NAME` | `Price Assistant` | Name shown on the home screen (can also be changed per device in Settings) |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `vi` | First-visit language, `vi` or `en` |
@@ -310,10 +311,10 @@ The tests cover search ranking against the real demo catalogue (`pan` → Panaso
 Vercel runs the app as serverless functions with **no permanent disk**, so the data lives in a hosted PostgreSQL database (Neon, free tier).
 
 1. **Import the GitHub repo** in Vercel (*Add New → Project*). The framework is detected as Next.js; keep the defaults.
-2. **Create the database:** in the Vercel project, open *Storage → Create Database → Neon (Postgres)* and connect it to the project, for all environments. Vercel adds `DATABASE_URL` and `DATABASE_URL_UNPOOLED` automatically.
-3. *(Optional)* In *Settings → Environment Variables*, add `ADMIN_PIN`, `NEXT_PUBLIC_STORE_NAME`, etc.
+2. **Create the database:** in the Vercel project, open *Storage → Create Database → Neon (Postgres)* and connect it to the project, for all environments. Vercel adds `DATABASE_URL` (and a direct-connection variable) automatically. Any other Postgres works too: just add `DATABASE_URL` yourself.
+3. **Add the admin PIN** (recommended, because the site is public): *Settings → Environment Variables → Add* with Key `ADMIN_PIN` and Value of 6 digits you choose, ticking all environments. Optional extras the same way: `NEXT_PUBLIC_STORE_NAME`, `NEXT_PUBLIC_DEFAULT_LOCALE`, `SEED_DEMO_DATA`.
 4. **Redeploy** (*Deployments → ⋯ → Redeploy*). The `vercel-build` script runs on every deploy:
-   `prisma generate` → `prisma migrate deploy` (creates or updates tables) → seeds the 112 demo products **only if the database is empty** → `next build`.
+   `prisma generate` → `prisma migrate deploy` (creates or updates tables) → seeds the 112 demo products **only if the database is empty** → `next build`. Environment variable changes only apply after a redeploy.
 
 Vercel URLs are already HTTPS, so the camera and microphone work.
 
@@ -342,6 +343,6 @@ npm start                # port 3000; set PORT=… to change
 | Camera or mic says "blocked" | Tap the 🔒 icon in the address bar → allow Camera/Microphone. Use `https://` or `localhost`. |
 | Voice says "No internet connection" | Chrome and Edge send speech to an online service, so the shop device needs internet for voice. Scan and search work on the local network only. |
 | Voice search not available | Use Google Chrome (Android/desktop) or Safari (iOS 14.5+). Firefox has no Web Speech recognition. |
-| Every page shows "Có lỗi xảy ra" / "Something went wrong" after deploying | The app can't reach the database. Check that `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are set in Vercel → Settings → Environment Variables, then redeploy. The function logs (Vercel → Logs) show the exact error. |
+| Every page shows "Có lỗi xảy ra" / "Something went wrong" after deploying | The app can't reach the database. Check that `DATABASE_URL` is set in Vercel → Settings → Environment Variables, then redeploy. The function logs (Vercel → Logs) show the exact error. |
 | `prepared statement "s0" already exists` | Your connection goes through a pooler that doesn't support prepared statements (or it's `npm run db:local`). Add `&pgbouncer=true` to `DATABASE_URL` (not to the unpooled one). |
 | Prices look wrong after changing currency | `NEXT_PUBLIC_*` are build-time: rebuild. Existing prices are stored in minor units of the old currency. |
