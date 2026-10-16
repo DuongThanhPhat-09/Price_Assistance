@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="wire">
+<rect width="240" height="240" rx="28" fill="#ffedd5"/>
+<circle cx="120" cy="120" r="78" fill="#ef4444" stroke="#334155" stroke-width="5"/>
+<circle cx="120" cy="120" r="60" fill="none" stroke="#b91c1c" stroke-width="4"/>
+<circle cx="120" cy="120" r="44" fill="none" stroke="#b91c1c" stroke-width="4"/>
+<circle cx="120" cy="120" r="26" fill="#ffedd5" stroke="#334155" stroke-width="5"/>
+<path d="M190 150 q30 20 20 50" fill="none" stroke="#ef4444" stroke-width="10" stroke-linecap="round"/>
+<path d="M207 196 l6 14" stroke="#b45309" stroke-width="6" stroke-linecap="round"/>
+</svg>

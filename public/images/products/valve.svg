@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="valve">
+<rect width="240" height="240" rx="28" fill="#cffafe"/>
+<rect x="30" y="118" width="180" height="40" rx="6" fill="#d4a017" stroke="#334155" stroke-width="5"/>
+<path d="M90 106 h60 l14 24 l-14 24 h-60 l-14 -24 z" fill="#eab308" stroke="#334155" stroke-width="5"/>
+<rect x="112" y="78" width="16" height="30" fill="#94a3b8" stroke="#334155" stroke-width="4"/>
+<rect x="60" y="62" width="120" height="22" rx="11" fill="#dc2626" stroke="#334155" stroke-width="5"/>
+</svg>

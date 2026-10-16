@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="socket">
+<rect width="240" height="240" rx="28" fill="#e0e7ff"/>
+<rect x="40" y="40" width="160" height="160" rx="18" fill="#ffffff" stroke="#334155" stroke-width="5"/>
+<rect x="62" y="72" width="116" height="40" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="4"/>
+<rect x="62" y="128" width="116" height="40" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="4"/>
+<rect x="92" y="84" width="8" height="16" rx="3" fill="#334155"/><rect x="140" y="84" width="8" height="16" rx="3" fill="#334155"/>
+<rect x="92" y="140" width="8" height="16" rx="3" fill="#334155"/><rect x="140" y="140" width="8" height="16" rx="3" fill="#334155"/>
+</svg>

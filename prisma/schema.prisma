@@ -1,0 +1,49 @@
+// Price Assistant — Prisma schema
+//
+// Money is stored as INTEGER minor units (e.g. đồng for VND, cents for USD)
+// to avoid floating-point rounding errors. See src/lib/money.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  barcode       String?  @unique
+  name          String
+  description   String?
+  category      String
+  price         Int      @default(0) // selling price, minor units
+  costPrice     Int      @default(0) @map("cost_price") // minor units
+  stockQuantity Int      @default(0) @map("stock_quantity")
+  shelfLocation String?  @map("shelf_location")
+  imageUrl      String?  @map("image_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  searchHistory SearchHistory[]
+
+  @@index([category])
+  @@index([name])
+  @@map("products")
+}
+
+model SearchHistory {
+  id         Int      @id @default(autoincrement())
+  keyword    String
+  // "text" | "voice" | "barcode" | "image" (phase 2)
+  searchType String   @map("search_type")
+  // Product the user ended up opening, if any. Lets "Recent searches"
+  // show the product name + price and reopen it with one tap.
+  productId  Int?     @map("product_id")
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("search_history")
+}
