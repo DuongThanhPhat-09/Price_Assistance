@@ -88,7 +88,7 @@ export function ScanScreen() {
               </Button>
               {phase.kind === "not-found" && (
                 <Button asChild size="lg" variant="outline">
-                  <Link href={`/admin/products/new?barcode=${encodeURIComponent(phase.code)}`}>
+                  <Link href={`/admin/products/new?barcode=${encodeURIComponent(phase.code)}&from=scan`}>
                     <Plus aria-hidden />
                     {t("scan.addThis")}
                   </Link>

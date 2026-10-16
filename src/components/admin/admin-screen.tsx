@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet, LoaderCircle, Pencil, Plus, Search, Settings } from "lucide-react";
+import { Download, FileSpreadsheet, LoaderCircle, Pencil, Plus, ScanBarcode, Search, Settings } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProductImage } from "@/components/product/product-image";
 import { Button } from "@/components/ui/button";
@@ -74,25 +74,31 @@ export function AdminScreen() {
       <PageHeader title={t("admin.title")} backHref="/" />
       <main className="mx-auto max-w-3xl px-4 pb-12 pt-4">
         <div className="grid gap-3">
-          <Button asChild size="xl">
-            <Link href="/admin/products/new">
-              <Plus aria-hidden />
-              {t("admin.add")}
+          <Button asChild size="xl" className="h-auto min-h-20 whitespace-normal bg-action-scan py-3 text-center">
+            <Link href="/admin/scan">
+              <ScanBarcode aria-hidden />
+              {t("admin.scanAdd")}
             </Link>
           </Button>
-          <Button asChild variant="outline" className="justify-start">
+          <Button asChild size="lg" variant="outline" className="h-auto min-h-14 whitespace-normal py-3">
+            <Link href="/admin/products/new">
+              <Plus aria-hidden />
+              {t("admin.addManual")}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="justify-start h-auto min-h-14 whitespace-normal py-3">
             <Link href="/admin/import">
               <FileSpreadsheet aria-hidden />
               {t("admin.import")}
             </Link>
           </Button>
-          <Button asChild variant="outline" className="justify-start">
+          <Button asChild variant="outline" className="justify-start h-auto min-h-14 whitespace-normal py-3">
             <a href="/api/products/export" download>
               <Download aria-hidden />
               {t("admin.export")}
             </a>
           </Button>
-          <Button asChild variant="outline" className="justify-start">
+          <Button asChild variant="outline" className="justify-start h-auto min-h-14 whitespace-normal py-3">
             <Link href="/admin/settings">
               <Settings aria-hidden />
               {t("admin.settings")}

@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Save } from "lucide-react";
+import { Info, LoaderCircle, Save, ScanBarcode, X } from "lucide-react";
 import { toast } from "sonner";
 import { ProductImage } from "@/components/product/product-image";
+import { BarcodeScanner } from "@/components/scan/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api-client";
+import { cleanBarcode } from "@/lib/barcode";
+import { successFeedback } from "@/lib/feedback";
 import { formatAmountPlain, parseAmount, toMinor } from "@/lib/money";
 import type { ProductDTO } from "@/lib/types";
 import { productInputSchema } from "@/lib/validation";
@@ -56,7 +60,7 @@ function Field({
   id: string;
   label: string;
   hint?: string;
-  error?: string;
+  error?: ReactNode;
   required?: boolean;
   children: ReactNode;
 }) {
@@ -78,7 +82,18 @@ function Field({
   );
 }
 
-export function ProductForm({ product, initialBarcode }: { product?: ProductDTO; initialBarcode?: string }) {
+/** Why the form was opened, when it came from the scan-to-add screen. */
+export type FormNotice = "scan-new" | "scan-existing";
+
+export function ProductForm({
+  product,
+  initialBarcode,
+  notice,
+}: {
+  product?: ProductDTO;
+  initialBarcode?: string;
+  notice?: FormNotice;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const uid = useId();
@@ -86,6 +101,9 @@ export function ProductForm({ product, initialBarcode }: { product?: ProductDTO;
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [taken, setTaken] = useState<{ id: number; name: string } | null>(null);
+  const scanHandled = useRef(false);
 
   useEffect(() => {
     api.categories().then(setCategories).catch(() => undefined);
@@ -94,6 +112,39 @@ export function ProductForm({ product, initialBarcode }: { product?: ProductDTO;
   const set = (key: keyof FormValues) => (e: { target: { value: string } }) => {
     setValues((v) => ({ ...v, [key]: e.target.value }));
     setErrors((er) => ({ ...er, [key]: undefined }));
+    if (key === "barcode") setTaken(null);
+  };
+
+  /** Warn right away if the barcode already belongs to another product. */
+  const checkBarcode = async (raw: string) => {
+    const code = cleanBarcode(raw);
+    if (!code) return;
+    try {
+      const existing = await api.byBarcode(code);
+      if (existing && existing.id !== product?.id) {
+        setTaken({ id: existing.id, name: existing.name });
+        setErrors((er) => ({ ...er, barcode: t("form.barcodeTaken", { name: existing.name }) }));
+      }
+    } catch {
+      /* the server re-checks on save */
+    }
+  };
+
+  const openScanner = () => {
+    scanHandled.current = false;
+    setScanning(true);
+  };
+
+  const onScanned = (raw: string) => {
+    if (scanHandled.current) return;
+    scanHandled.current = true;
+    const code = cleanBarcode(raw);
+    successFeedback();
+    setScanning(false);
+    setValues((v) => ({ ...v, barcode: code }));
+    setErrors((er) => ({ ...er, barcode: undefined }));
+    setTaken(null);
+    void checkBarcode(code);
   };
 
   const id = (k: string) => `${uid}-${k}`;
@@ -107,6 +158,7 @@ export function ProductForm({ product, initialBarcode }: { product?: ProductDTO;
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const errs: FieldErrors = {};
+    if (taken) errs.barcode = t("form.barcodeTaken", { name: taken.name });
     if (!values.name.trim()) errs.name = t("form.required");
     if (!values.category.trim()) errs.category = t("form.required");
     const price = parseAmount(values.price);
@@ -157,6 +209,15 @@ export function ProductForm({ product, initialBarcode }: { product?: ProductDTO;
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
+      {notice && (
+        <p role="status" className="flex gap-3 rounded-2xl bg-accent p-4 text-lg font-medium leading-snug">
+          <Info className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden />
+          {notice === "scan-new"
+            ? t("form.scanNewNotice", { code: values.barcode })
+            : t("form.scanExistingNotice")}
+        </p>
+      )}
+
       <Field id={id("name")} label={t("form.name")} error={errors.name} required>
         <Input id={id("name")} value={values.name} onChange={set("name")} aria-invalid={!!errors.name} autoFocus={!product} />
       </Field>
@@ -212,15 +273,48 @@ export function ProductForm({ product, initialBarcode }: { product?: ProductDTO;
         </datalist>
       </Field>
 
-      <Field id={id("barcode")} label={t("form.barcode")} hint={t("form.barcodeHint")} error={errors.barcode}>
-        <Input
-          id={id("barcode")}
-          inputMode="numeric"
-          value={values.barcode}
-          onChange={set("barcode")}
-          aria-invalid={!!errors.barcode}
-          className="font-mono tracking-wider"
-        />
+      <Field
+        id={id("barcode")}
+        label={t("form.barcode")}
+        hint={t("form.barcodeHint")}
+        error={
+          taken ? (
+            <>
+              {errors.barcode}{" "}
+              <Link href={`/admin/products/${taken.id}/edit`} className="text-primary underline">
+                {t("form.openExisting")}
+              </Link>
+            </>
+          ) : (
+            errors.barcode
+          )
+        }
+      >
+        <div className="flex gap-3">
+          <Input
+            id={id("barcode")}
+            inputMode="numeric"
+            value={values.barcode}
+            onChange={set("barcode")}
+            onBlur={(e) => void checkBarcode(e.target.value)}
+            aria-invalid={!!errors.barcode}
+            className="font-mono tracking-wider"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={scanning ? () => setScanning(false) : openScanner}
+            className="shrink-0"
+          >
+            {scanning ? <X aria-hidden /> : <ScanBarcode aria-hidden />}
+            {scanning ? t("form.closeScanner") : t("form.scanBarcode")}
+          </Button>
+        </div>
+        {scanning && (
+          <div className="mt-3">
+            <BarcodeScanner onDetected={onScanned} />
+          </div>
+        )}
       </Field>
 
       <Field id={id("imageUrl")} label={t("form.imageUrl")} hint={t("form.imageHint")} error={errors.imageUrl}>

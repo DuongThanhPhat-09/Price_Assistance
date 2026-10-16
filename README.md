@@ -40,7 +40,8 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 - **Installable** (PWA manifest): "Add to Home Screen" makes it open like an app.
 
 **Admin**
-- Add / edit / delete products (delete always asks for confirmation).
+- **Scan to add products** (*Manage products → Scan to add products*): scan an item. An unknown barcode opens the *Add* form with the barcode filled in; a known one opens *Edit* so you can update the price or stock. After *Save* the camera comes back for the next item, so stocking a shelf is scan → type name & price → save → scan…
+- Add / edit / delete products (delete always asks for confirmation). The barcode field has its own **Scan** button and warns immediately if the code already belongs to another product.
 - **CSV bulk import** (upsert by barcode, per-row error report with spreadsheet row numbers) and **CSV export** (Excel-friendly UTF-8).
 - Per-device settings: store name, show/hide cost price (for screens customers can see), language, clear history.
 - Optional **admin PIN** (`ADMIN_PIN`). Price lookup always stays open.

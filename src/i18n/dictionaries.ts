@@ -94,6 +94,8 @@ const en = {
 
   "admin.title": "Manage Products",
   "admin.add": "Add product",
+  "admin.scanAdd": "Scan to add products",
+  "admin.addManual": "Add by typing",
   "admin.import": "Import CSV",
   "admin.export": "Download all (CSV)",
   "admin.settings": "Settings",
@@ -123,6 +125,15 @@ const en = {
   "form.description": "Description",
   "form.required": "Please fill in this field",
   "form.invalidNumber": "Please enter a number",
+  "form.scanBarcode": "Scan",
+  "form.closeScanner": "Close camera",
+  "form.barcodeTaken": "This barcode already belongs to “{name}”.",
+  "form.openExisting": "Open that product",
+  "form.scanNewNotice": "New barcode {code}. Enter the name and price, then tap Save.",
+  "form.scanExistingNotice": "This product is already in the list. Update the price or quantity, then tap Save.",
+
+  "adminScan.title": "Scan to add products",
+  "adminScan.hint": "Scan a product. New items open the Add form; existing items open Edit. After saving, the camera comes back for the next item.",
 
   "import.title": "Import products from CSV",
   "import.step1": "Download the sample file and fill it in with Excel or Google Sheets.",
@@ -245,6 +256,8 @@ const vi: Dictionary = {
 
   "admin.title": "Quản lý sản phẩm",
   "admin.add": "Thêm sản phẩm",
+  "admin.scanAdd": "Quét mã để thêm hàng",
+  "admin.addManual": "Thêm bằng cách gõ tay",
   "admin.import": "Nhập từ file CSV",
   "admin.export": "Tải tất cả (CSV)",
   "admin.settings": "Cài đặt",
@@ -274,6 +287,15 @@ const vi: Dictionary = {
   "form.description": "Mô tả",
   "form.required": "Vui lòng điền ô này",
   "form.invalidNumber": "Vui lòng nhập số",
+  "form.scanBarcode": "Quét",
+  "form.closeScanner": "Đóng camera",
+  "form.barcodeTaken": "Mã vạch này đã thuộc về “{name}”.",
+  "form.openExisting": "Mở sản phẩm đó",
+  "form.scanNewNotice": "Mã vạch mới {code}. Nhập tên và giá rồi bấm Lưu.",
+  "form.scanExistingNotice": "Sản phẩm này đã có trong danh sách. Sửa giá hoặc số lượng rồi bấm Lưu.",
+
+  "adminScan.title": "Quét mã để thêm hàng",
+  "adminScan.hint": "Quét mã vạch trên sản phẩm. Hàng mới sẽ mở form thêm, hàng đã có sẽ mở form sửa. Lưu xong camera tự mở lại để quét món tiếp theo.",
 
   "import.title": "Nhập sản phẩm từ file CSV",
   "import.step1": "Tải file mẫu, mở bằng Excel hoặc Google Sheets và điền thông tin.",

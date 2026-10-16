@@ -10,6 +10,13 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
 
+// Locally, pick up .env (Vercel injects variables directly and has no .env).
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env file */
+}
+
 const env = { ...process.env };
 
 // Make local CLIs (prisma, tsx, next) resolvable even when this script is run
