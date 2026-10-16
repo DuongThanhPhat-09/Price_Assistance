@@ -129,14 +129,14 @@ const en = {
   "form.description": "Description",
   "form.required": "Please fill in this field",
   "form.invalidNumber": "Please enter a number",
-  "form.scanBarcode": "Scan",
+  "form.scanBarcode": "Scan the barcode",
   "form.closeScanner": "Close camera",
   "form.barcodeTaken": "This barcode already belongs to “{name}”.",
   "form.openExisting": "Open that product",
   "form.scanNewNotice": "New barcode {code}. Enter the name and price, then tap Save.",
   "form.scanExistingNotice": "This product is already in the list. Update the price or quantity, then tap Save.",
 
-  "adminScan.title": "Scan to add products",
+  "adminScan.title": "Scan to add",
   "adminScan.hint": "Scan a product. New items open the Add form; existing items open Edit. After saving, the camera comes back for the next item.",
 
   "import.title": "Import products from CSV",
@@ -295,14 +295,14 @@ const vi: Dictionary = {
   "form.description": "Mô tả",
   "form.required": "Vui lòng điền ô này",
   "form.invalidNumber": "Vui lòng nhập số",
-  "form.scanBarcode": "Quét",
+  "form.scanBarcode": "Quét mã vạch",
   "form.closeScanner": "Đóng camera",
   "form.barcodeTaken": "Mã vạch này đã thuộc về “{name}”.",
   "form.openExisting": "Mở sản phẩm đó",
   "form.scanNewNotice": "Mã vạch mới {code}. Nhập tên và giá rồi bấm Lưu.",
   "form.scanExistingNotice": "Sản phẩm này đã có trong danh sách. Sửa giá hoặc số lượng rồi bấm Lưu.",
 
-  "adminScan.title": "Quét mã để thêm hàng",
+  "adminScan.title": "Quét để nhập hàng",
   "adminScan.hint": "Quét mã vạch trên sản phẩm. Hàng mới sẽ mở form thêm, hàng đã có sẽ mở form sửa. Lưu xong camera tự mở lại để quét món tiếp theo.",
 
   "import.title": "Nhập sản phẩm từ file CSV",

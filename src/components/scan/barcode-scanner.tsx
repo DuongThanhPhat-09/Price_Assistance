@@ -67,8 +67,17 @@ async function photoVariants(file: File): Promise<File[]> {
  * Live camera barcode reader (html5-qrcode) with a "take a photo" fallback.
  * Uses the phone's native BarcodeDetector when available and the bundled
  * ZXing decoder elsewhere. Calls `onDetected` with each code it reads.
+ *
+ * `busyCode`: the parent is looking this code up — shown as an overlay on
+ * the camera box (the camera keeps running underneath).
  */
-export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => void }) {
+export function BarcodeScanner({
+  onDetected,
+  busyCode = null,
+}: {
+  onDetected: (code: string) => void;
+  busyCode?: string | null;
+}) {
   const { t } = useI18n();
   const [state, setState] = useState<CameraState>("starting");
   const [scale, setScale] = useState(0);
@@ -239,14 +248,21 @@ export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => v
           </div>
         )}
 
-        {(state === "starting" || photoBusy) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 text-white">
+        {(state === "starting" || photoBusy || busyCode) && (
+          <div
+            role="status"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-4 text-center text-white"
+          >
             <LoaderCircle className="size-14 animate-spin" aria-hidden />
-            <p className="text-xl font-semibold">{photoBusy ? t("scan.photoReading") : t("scan.starting")}</p>
+            {busyCode ? (
+              <p className="break-all font-mono text-2xl font-bold tracking-wider">{busyCode}</p>
+            ) : (
+              <p className="text-xl font-semibold">{photoBusy ? t("scan.photoReading") : t("scan.starting")}</p>
+            )}
           </div>
         )}
 
-        {problem && !photoBusy && (
+        {problem && !photoBusy && !busyCode && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900 p-6 text-center text-white">
             <CameraOff className="size-16" aria-hidden />
             <p className="text-xl font-semibold leading-snug">{problem}</p>
@@ -254,7 +270,7 @@ export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => v
         )}
       </div>
 
-      {showTip && !photoFailed && (
+      {showTip && !photoFailed && !busyCode && (
         <p role="status" className="mt-4 flex gap-3 rounded-2xl bg-amber-50 p-4 text-lg leading-snug ring-2 ring-amber-200">
           <Lightbulb className="mt-0.5 size-6 shrink-0 text-warning" aria-hidden />
           {t("scan.tip")}
@@ -282,7 +298,7 @@ export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => v
         variant="outline"
         size="lg"
         className="mt-4 w-full"
-        disabled={photoBusy}
+        disabled={photoBusy || !!busyCode}
         onClick={() => fileRef.current?.click()}
       >
         <Camera aria-hidden />

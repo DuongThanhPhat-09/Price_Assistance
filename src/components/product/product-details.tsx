@@ -41,14 +41,16 @@ export function ProductDetails({ product, query }: { product: ProductDTO; query?
       <main className="mx-auto max-w-3xl px-4 pt-4">
         <article className="overflow-hidden rounded-3xl border-2 border-border bg-card shadow-sm">
           <div className="md:flex">
-            <ProductImage
-              src={product.imageUrl}
-              alt={product.name}
-              category={product.category}
-              className="aspect-[16/10] w-full md:aspect-square md:w-80 md:shrink-0"
-              iconClassName="size-2/5"
-            />
-            <div className="p-5 md:flex-1">
+            <div className="px-5 pt-5 md:w-80 md:shrink-0 md:pb-5 md:pr-0">
+              <ProductImage
+                src={product.imageUrl}
+                alt={product.name}
+                category={product.category}
+                className="aspect-[16/10] w-full rounded-2xl md:aspect-square"
+                iconClassName="size-2/5"
+              />
+            </div>
+            <div className="p-5 md:min-w-0 md:flex-1">
               <h2 className="text-[1.75rem] font-extrabold leading-tight sm:text-3xl">{product.name}</h2>
               <div className="mt-3">
                 <StockBadge quantity={product.stockQuantity} />

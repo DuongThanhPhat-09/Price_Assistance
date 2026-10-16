@@ -273,24 +273,24 @@ export function ProductForm({
         </datalist>
       </Field>
 
-      <Field
-        id={id("barcode")}
-        label={t("form.barcode")}
-        hint={t("form.barcodeHint")}
-        error={
-          taken ? (
-            <>
-              {errors.barcode}{" "}
-              <Link href={`/admin/products/${taken.id}/edit`} className="text-primary underline">
-                {t("form.openExisting")}
-              </Link>
-            </>
-          ) : (
-            errors.barcode
-          )
-        }
-      >
-        <div className="flex gap-3">
+      <div className="space-y-3">
+        <Field
+          id={id("barcode")}
+          label={t("form.barcode")}
+          hint={t("form.barcodeHint")}
+          error={
+            taken ? (
+              <>
+                {errors.barcode}{" "}
+                <Link href={`/admin/products/${taken.id}/edit`} className="text-primary underline">
+                  {t("form.openExisting")}
+                </Link>
+              </>
+            ) : (
+              errors.barcode
+            )
+          }
+        >
           <Input
             id={id("barcode")}
             inputMode="numeric"
@@ -300,22 +300,18 @@ export function ProductForm({
             aria-invalid={!!errors.barcode}
             className="font-mono tracking-wider"
           />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={scanning ? () => setScanning(false) : openScanner}
-            className="shrink-0"
-          >
-            {scanning ? <X aria-hidden /> : <ScanBarcode aria-hidden />}
-            {scanning ? t("form.closeScanner") : t("form.scanBarcode")}
-          </Button>
-        </div>
-        {scanning && (
-          <div className="mt-3">
-            <BarcodeScanner onDetected={onScanned} />
-          </div>
-        )}
-      </Field>
+        </Field>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={scanning ? () => setScanning(false) : openScanner}
+          className="w-full"
+        >
+          {scanning ? <X aria-hidden /> : <ScanBarcode aria-hidden />}
+          {scanning ? t("form.closeScanner") : t("form.scanBarcode")}
+        </Button>
+        {scanning && <BarcodeScanner onDetected={onScanned} />}
+      </div>
 
       <Field id={id("imageUrl")} label={t("form.imageUrl")} hint={t("form.imageHint")} error={errors.imageUrl}>
         <div className="flex items-center gap-3">
@@ -333,12 +329,17 @@ export function ProductForm({
         <Textarea id={id("description")} value={values.description} onChange={set("description")} />
       </Field>
 
-      <div className="sticky bottom-0 -mx-4 flex gap-3 border-t-2 border-border bg-background/95 px-4 py-3 backdrop-blur">
-        {product && <DeleteProductButton id={product.id} name={product.name} onDeleted={() => router.push("/admin")} />}
-        <Button type="submit" size="lg" className="flex-1" disabled={saving}>
-          {saving ? <LoaderCircle className="animate-spin" aria-hidden /> : <Save aria-hidden />}
-          {t("common.save")}
-        </Button>
+      {/* Spacer so the last field is never hidden behind the save bar. */}
+      <div aria-hidden className="h-20 pb-[env(safe-area-inset-bottom)]" />
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <div className="mx-auto flex max-w-3xl gap-3 px-4 py-3">
+          {product && <DeleteProductButton id={product.id} name={product.name} onDeleted={() => router.push("/admin")} />}
+          <Button type="submit" size="lg" className="flex-1" disabled={saving}>
+            {saving ? <LoaderCircle className="animate-spin" aria-hidden /> : <Save aria-hidden />}
+            {t("common.save")}
+          </Button>
+        </div>
       </div>
     </form>
   );

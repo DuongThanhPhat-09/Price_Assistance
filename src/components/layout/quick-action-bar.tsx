@@ -22,18 +22,18 @@ export function QuickActionBar() {
       aria-label="Quick actions"
       className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2 p-2">
+      <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2 px-4 py-2">
         {items.map(({ href, label, icon: Icon, color }) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              "flex h-16 items-center justify-center gap-2 rounded-xl text-lg font-bold text-white active:scale-[0.98]",
+              "flex h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-base font-bold leading-tight text-white active:scale-[0.98] sm:flex-row sm:gap-2 sm:text-lg",
               color,
             )}
           >
-            <Icon className="size-7" aria-hidden />
-            {label}
+            <Icon className="size-7 shrink-0" aria-hidden />
+            <span className="whitespace-nowrap">{label}</span>
           </Link>
         ))}
       </div>
@@ -43,5 +43,5 @@ export function QuickActionBar() {
 
 /** Spacer so content is never hidden behind the fixed bar. */
 export function QuickActionBarSpacer() {
-  return <div aria-hidden className="h-24 pb-[env(safe-area-inset-bottom)]" />;
+  return <div aria-hidden className="h-28 pb-[env(safe-area-inset-bottom)]" />;
 }
