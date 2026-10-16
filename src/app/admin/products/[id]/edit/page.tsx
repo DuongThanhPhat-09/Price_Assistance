@@ -19,5 +19,6 @@ export default async function EditProductPage({
   const product = await getProductById(id);
   if (!product) notFound();
   const { from } = await searchParams;
-  return <AdminFormPage product={product} notice={from === "scan" ? "scan-existing" : undefined} />;
+  const notice = from === "scan" ? "scan-existing" : from === "recognize" ? "recognize-existing" : undefined;
+  return <AdminFormPage product={product} notice={notice} />;
 }

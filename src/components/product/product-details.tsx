@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Barcode, Boxes, Clock, MapPin, Pencil, Search, Tag } from "lucide-react";
+import { Barcode, Boxes, Clock, Factory, Hash, Layers, MapPin, Pencil, Search, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { QuickActionBar, QuickActionBarSpacer } from "@/components/layout/quick-action-bar";
@@ -96,6 +96,21 @@ export function ProductDetails({ product, query }: { product: ProductDTO; query?
             <InfoRow icon={<Tag aria-hidden />} label={t("product.category")}>
               {product.category}
             </InfoRow>
+            {product.brand && (
+              <InfoRow icon={<Factory aria-hidden />} label={t("product.brand")}>
+                {product.brand}
+              </InfoRow>
+            )}
+            {product.model && (
+              <InfoRow icon={<Hash aria-hidden />} label={t("product.model")}>
+                <span className="font-mono tracking-wide">{product.model}</span>
+              </InfoRow>
+            )}
+            {product.variant && (
+              <InfoRow icon={<Layers aria-hidden />} label={t("product.variant")}>
+                {product.variant}
+              </InfoRow>
+            )}
             {product.barcode && (
               <InfoRow icon={<Barcode aria-hidden />} label={t("product.barcode")}>
                 <span className="font-mono tracking-wider">{product.barcode}</span>

@@ -16,6 +16,15 @@ export interface ProductDTO {
   stockQuantity: number;
   shelfLocation: string | null;
   imageUrl: string | null;
+  brand: string | null;
+  model: string | null;
+  variant: string | null;
+  /** Set when the product was created from a photo (0..1). */
+  aiConfidence: number | null;
+  /** AI's rough price estimate in minor units — never a real market price. */
+  aiEstimatedPrice: number | null;
+  recognizedText: string | null;
+  recognitionProvider: VisionProviderId | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,3 +66,93 @@ export interface ApiError {
   error: string;
   details?: unknown;
 }
+
+/* ------------------------------------------------------------------ */
+/* Smart Product Recognition                                           */
+/* ------------------------------------------------------------------ */
+
+export type VisionProviderId = "openai" | "gemini";
+
+/** What the AI read from one product photo, normalised. Money in minor units. */
+export interface RecognizedProductDTO {
+  /** False when the photo does not seem to show a sellable product. */
+  isProduct: boolean;
+  name: string;
+  brand: string | null;
+  model: string | null;
+  variant: string | null;
+  category: string;
+  categoryAlternatives: string[];
+  description: string | null;
+  /** Only set when the digits pass the GS1 check (or were decoded on the phone). */
+  barcode: string | null;
+  keywords: string[];
+  /** Text read from the packaging, one line per printed line. */
+  visibleText: string[];
+  estimatedPrice: number | null;
+  /** 0..1 — the model's own estimate of how sure it is. */
+  confidence: number;
+}
+
+export type MatchReason = "barcode" | "model" | "name" | "brand";
+
+/** An existing catalogue product that may be the one in the photo. */
+export interface ProductMatchDTO {
+  product: ProductDTO;
+  /** 0..1 */
+  score: number;
+  reasons: MatchReason[];
+}
+
+export interface RecognitionResponse {
+  recognitionId: number;
+  /** Thumbnail of the photo, stored so it can become the product image. */
+  imageUrl: string | null;
+  provider: VisionProviderId;
+  model: string;
+  result: RecognizedProductDTO;
+  matches: ProductMatchDTO[];
+  /** Below the threshold: warn, and require an explicit "I checked" before saving. */
+  lowConfidence: boolean;
+  durationMs: number;
+}
+
+export type RecognitionStatus = "recognized" | "failed" | "saving" | "created" | "linked";
+
+export interface RecognitionLogDTO {
+  id: number;
+  imageUrl: string | null;
+  recognizedName: string | null;
+  confidence: number | null;
+  provider: VisionProviderId;
+  aiModel: string | null;
+  status: RecognitionStatus;
+  error: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  product: Pick<ProductDTO, "id" | "name"> | null;
+}
+
+export type ApiKeySource = "env" | "settings" | null;
+
+export interface VisionProviderSettingsDTO {
+  model: string;
+  defaultModel: string;
+  /** Where the active key comes from. Env vars always win over saved keys. */
+  keySource: ApiKeySource;
+  /** Masked key, e.g. "sk-…a1b2". The key itself never leaves the server. */
+  keyHint: string | null;
+}
+
+export interface AISettingsDTO {
+  provider: VisionProviderId;
+  /** The selected provider has an API key. */
+  ready: boolean;
+  providers: Record<VisionProviderId, VisionProviderSettingsDTO>;
+  /** False when SETTINGS_SECRET is unset and saved keys use the fallback key. */
+  hasSettingsSecret: boolean;
+}
+
+export type AITestResult =
+  | { ok: true; provider: VisionProviderId; model: string; durationMs: number }
+  | { ok: false; provider: VisionProviderId; code: string; message: string };

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Info, LoaderCircle, Save, ScanBarcode, X } from "lucide-react";
+import { Camera, Info, LoaderCircle, Save, ScanBarcode, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { ProductImage } from "@/components/product/product-image";
 import { BarcodeScanner } from "@/components/scan/barcode-scanner";
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api-client";
 import { cleanBarcode } from "@/lib/barcode";
 import { successFeedback } from "@/lib/feedback";
-import { formatAmountPlain, parseAmount, toMinor } from "@/lib/money";
+import { formatAmountPlain, formatMoney, parseAmount, toMinor } from "@/lib/money";
 import type { ProductDTO } from "@/lib/types";
 import { productInputSchema } from "@/lib/validation";
 import { useI18n } from "@/i18n/i18n-provider";
@@ -31,6 +31,9 @@ interface FormValues {
   shelfLocation: string;
   imageUrl: string;
   description: string;
+  brand: string;
+  model: string;
+  variant: string;
 }
 
 type FieldErrors = Partial<Record<keyof FormValues, string>>;
@@ -46,10 +49,13 @@ function toValues(p?: ProductDTO, barcode?: string): FormValues {
     shelfLocation: p?.shelfLocation ?? "",
     imageUrl: p?.imageUrl ?? "",
     description: p?.description ?? "",
+    brand: p?.brand ?? "",
+    model: p?.model ?? "",
+    variant: p?.variant ?? "",
   };
 }
 
-function Field({
+export function Field({
   id,
   label,
   hint,
@@ -82,8 +88,8 @@ function Field({
   );
 }
 
-/** Why the form was opened, when it came from the scan-to-add screen. */
-export type FormNotice = "scan-new" | "scan-existing";
+/** Why the form was opened: from scan-to-add, or a photo matched an existing product. */
+export type FormNotice = "scan-new" | "scan-existing" | "recognize-existing";
 
 export function ProductForm({
   product,
@@ -184,6 +190,9 @@ export function ProductForm({
       shelfLocation: values.shelfLocation,
       imageUrl: values.imageUrl,
       description: values.description,
+      brand: values.brand,
+      model: values.model,
+      variant: values.variant,
     });
     if (!parsed.success) {
       const fe: FieldErrors = {};
@@ -210,12 +219,27 @@ export function ProductForm({
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       {notice && (
-        <p role="status" className="flex gap-3 rounded-2xl bg-accent p-4 text-lg font-medium leading-snug">
-          <Info className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden />
-          {notice === "scan-new"
-            ? t("form.scanNewNotice", { code: values.barcode })
-            : t("form.scanExistingNotice")}
-        </p>
+        <div role="status" className="space-y-3 rounded-2xl bg-accent p-4">
+          <p className="flex gap-3 text-lg font-medium leading-snug">
+            <Info className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden />
+            {notice === "scan-new"
+              ? t("form.scanNewNotice", { code: values.barcode })
+              : notice === "scan-existing"
+                ? t("form.scanExistingNotice")
+                : t("form.recognizeExistingNotice")}
+          </p>
+          {notice === "scan-new" && (
+            <Button
+              type="button"
+              className="h-auto min-h-14 w-full whitespace-normal bg-action-detect py-3 text-white hover:bg-action-detect/90"
+              // replace: after saving, Back returns to the scanner, not to this empty form
+              onClick={() => router.replace(`/admin/detect?barcode=${encodeURIComponent(values.barcode)}&from=scan`)}
+            >
+              <Camera aria-hidden />
+              {t("form.fillFromPhoto")}
+            </Button>
+          )}
+        </div>
       )}
 
       <Field id={id("name")} label={t("form.name")} error={errors.name} required>
@@ -232,6 +256,12 @@ export function ProductForm({
             aria-invalid={!!errors.price}
             className="text-2xl font-bold"
           />
+          {product?.aiEstimatedPrice != null && (
+            <p className="flex items-start gap-2 text-base text-muted-foreground">
+              <Sparkles className="mt-0.5 size-5 shrink-0 text-action-detect" aria-hidden />
+              {t("form.aiEstimate", { price: formatMoney(product.aiEstimatedPrice) })}
+            </p>
+          )}
         </Field>
         <Field id={id("costPrice")} label={t("form.costPrice")} error={errors.costPrice}>
           <Input
@@ -271,6 +301,19 @@ export function ProductForm({
             <option key={c} value={c} />
           ))}
         </datalist>
+      </Field>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field id={id("brand")} label={t("form.brand")} error={errors.brand}>
+          <Input id={id("brand")} value={values.brand} onChange={set("brand")} />
+        </Field>
+        <Field id={id("model")} label={t("form.model")} error={errors.model}>
+          <Input id={id("model")} value={values.model} onChange={set("model")} className="font-mono tracking-wide" />
+        </Field>
+      </div>
+
+      <Field id={id("variant")} label={t("form.variant")} hint={t("form.variantHint")} error={errors.variant}>
+        <Input id={id("variant")} value={values.variant} onChange={set("variant")} />
       </Field>
 
       <div className="space-y-3">

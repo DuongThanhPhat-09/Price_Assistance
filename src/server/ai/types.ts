@@ -1,58 +1,12 @@
 /**
- * Contracts for future AI features. Nothing here is implemented yet —
- * each capability is an interface so a concrete provider (Claude, a local
- * model, a vendor API…) can be plugged in via ./registry.ts without touching
+ * Contracts for later AI features. Each capability is an interface so a
+ * concrete provider can be plugged in via ./registry.ts without touching
  * routes or UI.
+ *
+ * Camera features (Smart Product Recognition today; invoices, shelves,
+ * stock counting later) live in ./vision (providers) and ./tasks.
  */
 import type { ProductDTO } from "@/lib/types";
-
-/* ------------------------------------------------------------------ */
-/* Phase 2 — Camera product recognition                                */
-/* ------------------------------------------------------------------ */
-
-export interface ImageRecognitionInput {
-  /** Raw image bytes (JPEG/PNG/WebP) from the phone camera. */
-  image: Uint8Array;
-  mimeType: string;
-  /** UI locale, so labels come back in the shop's language. */
-  locale?: string;
-}
-
-/** One thing the model believes it sees in the photo. */
-export interface RecognizedCandidate {
-  /** Generic product type, e.g. "PVC pipe", "ball valve", "LED bulb". */
-  product: string;
-  /** Size / dimension if visible, e.g. "phi 27", "1.5mm²", "9W". */
-  size?: string;
-  /** Variant: brand, colour, model, e.g. "Bình Minh", "white", "A12". */
-  variant?: string;
-  /** 0..1 */
-  confidence: number;
-}
-
-export interface ImageRecognitionResult {
-  candidates: RecognizedCandidate[];
-  /** Model/provider identifier for auditing. */
-  model: string;
-}
-
-/** Turns a photo into structured guesses about what the product is. */
-export interface ImageRecognitionProvider {
-  readonly name: string;
-  recognize(input: ImageRecognitionInput): Promise<ImageRecognitionResult>;
-}
-
-export interface ProductMatch {
-  product: ProductDTO;
-  /** Combined score: recognition confidence × catalogue match quality. */
-  score: number;
-  candidate: RecognizedCandidate;
-}
-
-/** Photo → products in *this* shop's catalogue. */
-export interface ProductRecognitionService {
-  identify(input: ImageRecognitionInput): Promise<ProductMatch[]>;
-}
 
 /* ------------------------------------------------------------------ */
 /* Later phases                                                        */

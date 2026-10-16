@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet, LoaderCircle, Pencil, Plus, ScanBarcode, Search, Settings } from "lucide-react";
+import { Camera, Download, FileSpreadsheet, LoaderCircle, Pencil, Plus, ScanBarcode, Search, Settings, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProductImage } from "@/components/product/product-image";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,19 @@ export function AdminScreen() {
       <PageHeader title={t("admin.title")} backHref="/" />
       <main className="mx-auto max-w-3xl px-4 pb-12 pt-4">
         <div className="grid gap-3">
+          <Button
+            asChild
+            size="xl"
+            className="h-auto min-h-24 flex-col gap-1 whitespace-normal bg-action-detect py-3 text-center text-white hover:bg-action-detect/90"
+          >
+            <Link href="/admin/detect">
+              <span className="flex items-center gap-3">
+                <Camera aria-hidden />
+                {t("admin.detect")}
+              </span>
+              <span className="text-lg font-medium opacity-95">{t("admin.detectHint")}</span>
+            </Link>
+          </Button>
           <Button asChild size="xl" className="h-auto min-h-20 whitespace-normal bg-action-scan py-3 text-center">
             <Link href="/admin/scan">
               <ScanBarcode aria-hidden />
@@ -102,6 +115,12 @@ export function AdminScreen() {
             <Link href="/admin/settings">
               <Settings aria-hidden />
               {t("admin.settings")}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="justify-start h-auto min-h-14 whitespace-normal py-3">
+            <Link href="/admin/ai-settings">
+              <Sparkles aria-hidden />
+              {t("admin.aiSettings")}
             </Link>
           </Button>
         </div>
