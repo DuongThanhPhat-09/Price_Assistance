@@ -49,7 +49,7 @@ Built for small household shops (electrical, plumbing, hardware, building materi
 
 ## Tech stack
 
-Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix) · Prisma 6 + SQLite · Zustand · html5-qrcode · Web Speech API · Lucide icons · Zod · Vitest
+Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix) · Prisma 6 + PostgreSQL (Neon) · Zustand · html5-qrcode · Web Speech API · Lucide icons · Zod · Vitest
 
 ---
 
@@ -57,7 +57,10 @@ Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadc
 
 ### Requirements
 - **Node.js 20.9 or newer** (tested on Node 24): <https://nodejs.org>
-- Any OS (Windows, macOS, Linux). No database server needed: SQLite is a single file.
+- Any OS (Windows, macOS, Linux).
+- A **PostgreSQL** database. Either:
+  - **Neon** (free, recommended; the same database Vercel uses). Create one at <https://neon.tech> or in Vercel → Storage, or
+  - a **local** one with no install: `npm run db:local` (Prisma's built-in dev Postgres).
 
 ### Steps
 
@@ -65,10 +68,11 @@ Next.js 15 (App Router, Route Handlers) · TypeScript · Tailwind CSS 4 · shadc
 # 1. Install dependencies (also generates the Prisma client)
 npm install
 
-# 2. Create your settings file
+# 2. Create your settings file, then put your database URL in
+#    DATABASE_URL and DATABASE_URL_UNPOOLED (see .env.example)
 cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 
-# 3. Create the database and load the 112 demo products
+# 3. Create the tables and load the 112 demo products
 npm run setup
 
 # 4. Start the app
@@ -87,7 +91,9 @@ To start **without demo data**, run `npx prisma migrate deploy` instead of `npm 
 | `npm run dev:https` | Development server with a self-signed HTTPS certificate, reachable from phones on your Wi-Fi |
 | `npm run build` / `npm start` | Production build / server |
 | `npm run setup` | Apply migrations + seed demo data |
-| `npm run db:seed` | Re-run the seed (safe: upserts by barcode, never deletes your products) |
+| `npm run db:seed` | Add any missing demo products (never changes or deletes existing ones) |
+| `npm run db:local` | Start a local Postgres for development (keep it running in its own terminal) |
+| `npm run vercel-build` | What Vercel runs on deploy: migrate → seed if empty → build |
 | `npm run db:reset` | ⚠️ **Deletes everything** and recreates the demo database |
 | `npm test` | Unit tests (search engine, text normalisation, money, CSV) |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript checks |
@@ -119,7 +125,9 @@ All settings live in `.env` (see `.env.example`).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | `file:./dev.db` | SQLite file, relative to `prisma/` |
+| `DATABASE_URL` | – | PostgreSQL connection used by the app (pooled is fine) |
+| `DATABASE_URL_UNPOOLED` | – | Direct PostgreSQL connection used by migrations |
+| `SEED_DEMO_DATA` | `true` | On deploy, add the demo products if the database is empty. Set `false` to stop. |
 | `NEXT_PUBLIC_STORE_NAME` | `Price Assistant` | Name shown on the home screen (can also be changed per device in Settings) |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `vi` | First-visit language, `vi` or `en` |
 | `NEXT_PUBLIC_CURRENCY` | `VND` | ISO currency code for display |
@@ -200,12 +208,12 @@ Route handler  src/app/api/**/route.ts      ← validates input with Zod, maps e
    ▼
 Service        src/server/services/*.ts      ← business logic, no HTTP concerns
    ▼
-Prisma  →  SQLite
+Prisma  →  PostgreSQL
 ```
 
 - **Thin routes, fat services.** Pages and API routes only parse input and call services, so the same service backs the product page (server component) and the JSON API.
 - **Pure core in `src/lib`.** Search, text normalisation, money, CSV and validation have no I/O, are unit-tested, and can run in the browser (e.g. a future offline mode).
-- **Search engine.** All products are scored in memory: a few thousand products take a few milliseconds, which is faster than SQL `LIKE` and enables fuzzy, accent-insensitive matching. The index is cached and rebuilt after every write (and at most every 60 s). For tens of thousands of products, swap `search-service.ts` for SQLite FTS5 or Meilisearch; the interface stays the same.
+- **Search engine.** All products are scored in memory: a few thousand products take a few milliseconds, which is faster than SQL `LIKE` and enables fuzzy, accent-insensitive matching. The index is cached and rebuilt after every write (and at most every 15 s, since each serverless instance keeps its own copy). For tens of thousands of products, swap `search-service.ts` for Postgres full-text search (`pg_trgm`) or Meilisearch; the interface stays the same.
 - **State.** Zustand holds per-device settings (persisted to `localStorage`) and the current search session (so *Back* from a product returns to the same results). Language lives in a cookie so the server renders the right language on first paint.
 - **Security.** Zod validation on every write; unique-barcode conflicts → `409`; unexpected errors → generic `500` (details only in server logs); optional PIN with an HTTP-only cookie and rate-limited login; `Permissions-Policy` limits camera/mic to this origin.
 
@@ -297,7 +305,19 @@ The tests cover search ranking against the real demo catalogue (`pan` → Panaso
 
 ## Deploying to production
 
-SQLite is ideal for one shop on one server (a mini-PC, NAS, or small VPS):
+### Vercel + Neon (recommended)
+
+Vercel runs the app as serverless functions with **no permanent disk**, so the data lives in a hosted PostgreSQL database (Neon, free tier).
+
+1. **Import the GitHub repo** in Vercel (*Add New → Project*). The framework is detected as Next.js; keep the defaults.
+2. **Create the database:** in the Vercel project, open *Storage → Create Database → Neon (Postgres)* and connect it to the project, for all environments. Vercel adds `DATABASE_URL` and `DATABASE_URL_UNPOOLED` automatically.
+3. *(Optional)* In *Settings → Environment Variables*, add `ADMIN_PIN`, `NEXT_PUBLIC_STORE_NAME`, etc.
+4. **Redeploy** (*Deployments → ⋯ → Redeploy*). The `vercel-build` script runs on every deploy:
+   `prisma generate` → `prisma migrate deploy` (creates or updates tables) → seeds the 112 demo products **only if the database is empty** → `next build`.
+
+Vercel URLs are already HTTPS, so the camera and microphone work.
+
+### Your own server (mini-PC, NAS, VPS)
 
 ```bash
 npm ci
@@ -307,11 +327,12 @@ npm run build
 npm start                # port 3000; set PORT=… to change
 ```
 
+- Use any PostgreSQL 13+ (installed locally, Docker, or Neon).
 - Put it behind **HTTPS** (Caddy, nginx + Let's Encrypt, or Cloudflare Tunnel), which camera and microphone require.
-- Set `ADMIN_PIN` before exposing it to a network.
-- **Backups:** copy `prisma/dev.db` (or whatever `DATABASE_URL` points to), or use *Download all (CSV)*.
-- Run a **single instance**. To scale out, switch `provider` in `schema.prisma` to PostgreSQL. The code doesn't depend on SQLite.
-- Serverless hosts (e.g. Vercel) have no persistent disk, so use PostgreSQL there.
+
+### Either way
+- Set `ADMIN_PIN` before sharing the link.
+- **Backups:** Neon keeps point-in-time history; you can also use *Download all (CSV)* from the admin page.
 
 ## Troubleshooting
 
@@ -321,4 +342,6 @@ npm start                # port 3000; set PORT=… to change
 | Camera or mic says "blocked" | Tap the 🔒 icon in the address bar → allow Camera/Microphone. Use `https://` or `localhost`. |
 | Voice says "No internet connection" | Chrome and Edge send speech to an online service, so the shop device needs internet for voice. Scan and search work on the local network only. |
 | Voice search not available | Use Google Chrome (Android/desktop) or Safari (iOS 14.5+). Firefox has no Web Speech recognition. |
+| Every page shows "Có lỗi xảy ra" / "Something went wrong" after deploying | The app can't reach the database. Check that `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are set in Vercel → Settings → Environment Variables, then redeploy. The function logs (Vercel → Logs) show the exact error. |
+| `prepared statement "s0" already exists` | Your connection goes through a pooler that doesn't support prepared statements (or it's `npm run db:local`). Add `&pgbouncer=true` to `DATABASE_URL` (not to the unpooled one). |
 | Prices look wrong after changing currency | `NEXT_PUBLIC_*` are build-time: rebuild. Existing prices are stored in minor units of the old currency. |

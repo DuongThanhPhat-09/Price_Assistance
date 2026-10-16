@@ -12,8 +12,11 @@ import { toProductDTO } from "../mappers";
  * them in memory takes a few milliseconds — far faster than any SQL LIKE
  * query, and it gives us accent-insensitive fuzzy matching for free.
  * The index is rebuilt after any write and at most every INDEX_TTL_MS.
+ * On serverless hosts each instance has its own index and only sees its own
+ * writes, so the TTL bounds how stale another instance's results can be.
+ * (The product page always reads the database directly.)
  */
-const INDEX_TTL_MS = 60_000;
+const INDEX_TTL_MS = 15_000;
 
 const state = globalThis as unknown as {
   __paIndex?: { docs: IndexedDoc<Product>[]; builtAt: number } | null;

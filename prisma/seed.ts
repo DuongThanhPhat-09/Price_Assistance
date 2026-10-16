@@ -1,8 +1,13 @@
 /**
- * Seeds the demo catalogue. Safe to run repeatedly: products are upserted
- * by barcode, so it never creates duplicates and never deletes your data.
+ * Seeds the demo catalogue.
  *
- *   npm run db:seed
+ *   npm run db:seed            add any demo products that are missing
+ *   tsx prisma/seed.ts --if-empty
+ *                              only seed a completely empty database
+ *                              (used by `vercel-build`; disable with
+ *                              SEED_DEMO_DATA=false)
+ *
+ * Never updates or deletes existing rows, so prices you have edited are safe.
  */
 import { PrismaClient } from "@prisma/client";
 import { buildDemoProducts } from "./demo-products";
@@ -10,25 +15,27 @@ import { buildDemoProducts } from "./demo-products";
 const prisma = new PrismaClient();
 
 async function main() {
-  const products = buildDemoProducts();
-  let created = 0;
-  let updated = 0;
+  const ifEmpty = process.argv.includes("--if-empty");
 
-  await prisma.$transaction(async (tx) => {
-    for (const p of products) {
-      const existing = await tx.product.findUnique({ where: { barcode: p.barcode }, select: { id: true } });
-      if (existing) {
-        await tx.product.update({ where: { id: existing.id }, data: p });
-        updated++;
-      } else {
-        await tx.product.create({ data: p });
-        created++;
-      }
+  if (ifEmpty) {
+    if (process.env.SEED_DEMO_DATA === "false") {
+      console.log("🌱 Seed skipped (SEED_DEMO_DATA=false).");
+      return;
     }
-  });
+    const existing = await prisma.product.count();
+    if (existing > 0) {
+      console.log(`🌱 Seed skipped: database already has ${existing} products.`);
+      return;
+    }
+  }
 
+  // One round trip; rows whose barcode already exists are left untouched.
+  const { count } = await prisma.product.createMany({
+    data: buildDemoProducts(),
+    skipDuplicates: true,
+  });
   const total = await prisma.product.count();
-  console.log(`🌱 Seed complete: ${created} created, ${updated} updated, ${total} products in database.`);
+  console.log(`🌱 Seed complete: ${count} demo products added, ${total} products in database.`);
 }
 
 main()

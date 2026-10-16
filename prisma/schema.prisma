@@ -7,9 +7,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// PostgreSQL (e.g. Neon via Vercel Storage). Serverless hosts have no
+// persistent disk, so a file database like SQLite cannot be used there.
+// DATABASE_URL may be a pooled connection (used by the app);
+// DATABASE_URL_UNPOOLED must be a direct connection (used by migrations).
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Product {
